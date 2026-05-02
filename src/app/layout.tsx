@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sidebar } from "@/components/sidebar";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,15 +28,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex bg-gray-50/50">
-        <TooltipProvider>
-          <Sidebar />
-          <main className="flex-1 ml-64 p-6 lg:p-10 overflow-auto min-h-screen">
-            {children}
-          </main>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Sidebar />
+            <main className="flex-1 ml-64 p-6 lg:p-10 overflow-auto min-h-screen">
+              {children}
+            </main>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
