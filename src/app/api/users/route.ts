@@ -3,7 +3,15 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const users = await prisma.user.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      roleType: true,
+      avatarColor: true,
+      createdAt: true,
+      // passwordHash intentionally excluded
       assignedProjects: {
         include: { project: true },
       },
