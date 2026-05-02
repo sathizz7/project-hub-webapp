@@ -39,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = (user as { id: string }).id;
-        token.roleType = (user as { roleType: string }).roleType;
+        token.roleType = (user as { roleType: "ceo" | "team_member" }).roleType;
         token.jobTitle = (user as { jobTitle: string }).jobTitle;
         token.avatarColor = (user as { avatarColor: string }).avatarColor;
       }

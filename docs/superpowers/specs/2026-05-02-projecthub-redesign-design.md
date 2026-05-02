@@ -32,6 +32,7 @@ The goal is a frontend that is (a) production-credible, (b) interactive without 
 ## Implementation status
 
 - **2026-05-02:** Plan 1 (Foundations) merged on `feature/foundations` — design tokens (light + dark), `ThemeProvider`/`ThemeToggle`, `AppShell` (Sidebar + Topbar + role-aware nav config), `CommandPalette` (⌘K), shared primitives (`KPIStat`, `ProjectCard`, `TaskRow`, `ActionInboxItem`, `InsightCard`, `PhaseTracker`, `PageHeader`, `EmptyState`), `/design-demo` showcase route. 10 RTL tests pass. Legacy sidebar removed from root layout (old prototype pages are visually broken until Plans 4–7 replace them).
+- **2026-05-02 (later):** Plan 2 (Auth + role gating) merged on `feature/auth` — Auth.js v5 Credentials provider + JWT sessions, `User.passwordHash` and `User.roleType` in Prisma, `/login` page, route-gating proxy middleware (JWT-only, Edge-safe), `/api/auth/[...nextauth]`, `(app)` protected layout with server-side session redirect, role-router landing (CEO stub vs. team-member stub), `signOut` wired in `UserMenu`. 22 tests across 9 files pass. Legacy `src/app/page.tsx` archived to `_archive/`.
 
 ---
 

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
 
 const PUBLIC_PATHS = ["/login", "/design-demo"];
 
@@ -13,8 +13,8 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = await auth();
-  if (!session?.user) {
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  if (!token) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("from", pathname);

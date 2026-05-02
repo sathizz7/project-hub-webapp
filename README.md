@@ -6,6 +6,23 @@ ProjectHub is a CEO-centric project management tool designed for a CEO who acts 
 
 This is currently a **frontend prototype** built with mock data. There is no backend or database connected yet, though a Prisma schema and API route stubs are in place for future integration.
 
+## Local dev login
+
+After running `npm run seed`, two role accounts are available with password `password123`:
+
+| Email | Role | Landing page |
+|---|---|---|
+| `rahul@projecthub.dev` | CEO | "Good morning, Rahul." (CEO stub) |
+| `priya@projecthub.dev` | Team member | "Hey Priya." (team stub) |
+
+Any of the other three seed users (`arjun`, `meera`, `vikram` @ `projecthub.dev`) also work with the same password and land on the team-member view.
+
+```bash
+npm run seed          # create/reset dev database with hashed passwords
+npm run dev           # start dev server at http://localhost:3000
+# visit / → redirects to /login if not authenticated
+```
+
 ## Tech Stack
 
 | Layer         | Technology                          |
