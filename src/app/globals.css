@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* shadcn/ui tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -25,10 +26,8 @@
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
-  --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -39,16 +38,42 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ProjectHub design tokens */
+  --color-bg: hsl(var(--bg));
+  --color-bg-subtle: hsl(var(--bg-subtle));
+  --color-bg-muted: hsl(var(--bg-muted));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-fg: hsl(var(--fg));
+  --color-fg-muted: hsl(var(--fg-muted));
+  --color-fg-subtle: hsl(var(--fg-subtle));
+  --color-accent: hsl(var(--accent));
+  --color-accent-fg: hsl(var(--accent-fg));
+  --color-accent-soft: hsl(var(--accent-soft));
+  --color-accent-strong: hsl(var(--accent-strong));
+  --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-danger: hsl(var(--danger));
+  --color-danger-soft: hsl(var(--danger-soft));
+  --color-info: hsl(var(--info));
+  --color-info-soft: hsl(var(--info-soft));
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-lg: var(--shadow-lg);
 }
 
 :root {
+  /* shadcn/ui base tokens */
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.18 0 0);
   --card: oklch(1 0 0);
@@ -61,10 +86,8 @@
   --secondary-foreground: oklch(0.25 0 0);
   --muted: oklch(0.96 0 0);
   --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.955 0.01 264);
   --accent-foreground: oklch(0.25 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.90 0 0);
   --input: oklch(0.90 0 0);
   --ring: oklch(0.55 0.22 264);
   --chart-1: oklch(0.55 0.22 264);
@@ -81,9 +104,53 @@
   --sidebar-accent-foreground: oklch(0.25 0 0);
   --sidebar-border: oklch(0.90 0.005 264);
   --sidebar-ring: oklch(0.55 0.22 264);
+
+  /* ProjectHub surface tokens */
+  --bg: 0 0% 100%;                    /* #FFFFFF */
+  --bg-subtle: 210 40% 98%;           /* slate-50 #F8FAFC */
+  --bg-muted: 210 40% 96%;            /* slate-100 */
+  --border: 214 32% 91%;              /* slate-200 */
+  --border-strong: 213 27% 84%;       /* slate-300 */
+
+  /* ProjectHub text tokens */
+  --fg: 222 47% 11%;                  /* slate-900 */
+  --fg-muted: 215 16% 47%;            /* slate-600 */
+  --fg-subtle: 215 20% 65%;           /* slate-400 */
+
+  /* ProjectHub accent tokens */
+  --accent: 244 75% 59%;              /* indigo-600 #4F46E5 */
+  --accent-fg: 0 0% 100%;             /* white on indigo */
+  --accent-soft: 244 75% 95%;         /* indigo-50 */
+  --accent-strong: 245 73% 47%;       /* indigo-700 */
+
+  /* ProjectHub semantic tokens */
+  --success: 160 84% 39%;             /* emerald-600 */
+  --success-soft: 152 81% 96%;        /* emerald-50 */
+  --warning: 38 92% 50%;              /* amber-500 */
+  --warning-soft: 48 100% 96%;        /* amber-50 */
+  --danger: 351 75% 49%;              /* rose-600 */
+  --danger-soft: 356 100% 97%;        /* rose-50 */
+  --info: 200 98% 39%;                /* sky-600 */
+  --info-soft: 204 100% 97%;          /* sky-50 */
+
+  /* ProjectHub shape tokens */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ProjectHub elevation tokens */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* ProjectHub shell layout */
+  --sidebar-width: 240px;
+  --topbar-height: 56px;
+  --rail-width: 320px;
 }
 
 .dark {
+  /* shadcn/ui dark tokens */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -96,10 +163,8 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
@@ -115,6 +180,34 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* ProjectHub dark surface tokens */
+  --bg: 222 47% 5%;                   /* slate-950 */
+  --bg-subtle: 222 47% 7%;            /* slate-900-ish */
+  --bg-muted: 217 33% 12%;            /* slate-800 */
+  --border: 217 33% 17%;              /* slate-800 stronger */
+  --border-strong: 215 25% 27%;       /* slate-700 */
+
+  --fg: 210 40% 98%;
+  --fg-muted: 215 20% 65%;
+  --fg-subtle: 215 16% 47%;
+
+  --accent: 244 75% 65%;              /* indigo-500 — bumps for contrast */
+  --accent-fg: 0 0% 100%;
+  --accent-soft: 244 60% 18%;
+  --accent-strong: 244 75% 75%;
+
+  --success: 158 64% 52%;
+  --success-soft: 158 64% 12%;
+  --warning: 38 92% 60%;
+  --warning-soft: 38 92% 14%;
+  --danger: 351 75% 60%;
+  --danger-soft: 351 60% 18%;
+  --info: 200 98% 50%;
+  --info-soft: 200 60% 14%;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -123,9 +216,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    color: hsl(var(--fg));
+    font-feature-settings: "cv11", "ss01";
   }
   html {
     @apply font-sans;
+    background: hsl(var(--bg-subtle));
   }
 }
 
