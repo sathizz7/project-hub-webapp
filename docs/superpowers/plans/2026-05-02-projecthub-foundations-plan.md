@@ -8,6 +8,8 @@
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript 5, Tailwind 4, shadcn/ui (already installed), `next-themes` (new), `cmdk` (new), `lucide-react` (already), Vitest + React Testing Library + jsdom (new — first test setup in the repo), Geist fonts (already shipped via `geist` package).
 
+**Project layout note (IMPORTANT):** This project uses a `src/` directory. The TypeScript path alias `@/*` maps to `./src/*` (see `tsconfig.json`). Therefore **every source file path in this plan is relative to `src/`** — e.g., `components/theme/theme-provider.tsx` means `src/components/theme/theme-provider.tsx` on disk. Imports written as `@/components/...` resolve correctly. Config files at the repo root (`package.json`, `tailwind.config.ts`, `vitest.config.ts`, `vitest.setup.ts`) stay at the root.
+
 **Spec source:** [`docs/superpowers/specs/2026-05-02-projecthub-redesign-design.md`](../specs/2026-05-02-projecthub-redesign-design.md)
 
 ---
@@ -134,7 +136,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 });
