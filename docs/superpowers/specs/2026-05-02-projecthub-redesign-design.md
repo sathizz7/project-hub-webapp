@@ -29,6 +29,12 @@ The goal is a frontend that is (a) production-credible, (b) interactive without 
 
 ---
 
+## Implementation status
+
+- **2026-05-02:** Plan 1 (Foundations) merged on `feature/foundations` — design tokens (light + dark), `ThemeProvider`/`ThemeToggle`, `AppShell` (Sidebar + Topbar + role-aware nav config), `CommandPalette` (⌘K), shared primitives (`KPIStat`, `ProjectCard`, `TaskRow`, `ActionInboxItem`, `InsightCard`, `PhaseTracker`, `PageHeader`, `EmptyState`), `/design-demo` showcase route. 10 RTL tests pass. Legacy sidebar removed from root layout (old prototype pages are visually broken until Plans 4–7 replace them).
+
+---
+
 ## Design system foundations
 
 ### Color tokens (light + dark parity)
