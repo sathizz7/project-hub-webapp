@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut, Settings as SettingsIcon, User as UserIcon } from "lucide-react";
+import { signOut } from "next-auth/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +37,12 @@ export function UserMenu({ name, email }: UserMenuProps) {
         <DropdownMenuItem><UserIcon className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
         <DropdownMenuItem><SettingsIcon className="mr-2 h-4 w-4" />Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-danger"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-danger"
+          onClick={() => signOut({ callbackUrl: "/login" })}
+        >
+          <LogOut className="mr-2 h-4 w-4" />Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
