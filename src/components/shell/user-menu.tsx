@@ -19,13 +19,11 @@ export function UserMenu({ name, email }: UserMenuProps) {
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-fg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
-          aria-label="Account menu"
-        >
-          {initials}
-        </button>
+      <DropdownMenuTrigger
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-fg text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg"
+        aria-label="Account menu"
+      >
+        {initials}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>

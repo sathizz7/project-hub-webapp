@@ -8,8 +8,7 @@ class ResizeObserverMock {
   unobserve() {}
   disconnect() {}
 }
-// @ts-expect-error - jsdom polyfill
-globalThis.ResizeObserver = ResizeObserverMock;
+globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
