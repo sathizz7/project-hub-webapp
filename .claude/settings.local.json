@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(docker build *)",
+      "Bash(docker info *)",
+      "Bash(python -m venv .venv)",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(curl -L -o voices-v1.0.bin https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin)",
+      "Bash(curl -L -o kokoro-v1.0.onnx https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx)",
+      "Bash(ls -lh d:/work-space/personal/kokoro-tts/*.bin d:/work-space/personal/kokoro-tts/*.onnx)",
+      "Bash(.venv/Scripts/kokoro-tts.exe - output_test.wav --lang en-us --voice af_sarah)",
+      "Bash(xxd)",
+      "Bash(curl -sI -L https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/kokoro-v1.0.onnx)",
+      "Bash(curl -sI -L https://github.com/nazdridoy/kokoro-tts/releases/download/v1.0.0/voices-v1.0.bin)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(claude mcp *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if 'mcp' in k.lower\\(\\)}, indent=2\\)\\)\")",
+      "Bash(python -c \"from docx import Document; d = Document\\('D:/work-space/personal/voice-agent/Voice_Agent_HLD_v5.0_Definitive.docx'\\); [print\\(p.text\\) for p in d.paragraphs]\")",
+      "Bash(pip install *)",
+      "Bash(python -c 'from docx import Document; d = Document\\('\\\\''D:/work-space/personal/voice-agent/Voice_Agent_HLD_v5.0_Definitive.docx'\\\\''\\); *)"
+    ]
+  }
+}
