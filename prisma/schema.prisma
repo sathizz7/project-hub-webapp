@@ -8,12 +8,14 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  name        String
-  role        String
-  email       String   @unique
-  avatarColor String   @default("#3b82f6")
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  role         String
+  email        String   @unique
+  avatarColor  String   @default("#3b82f6")
+  passwordHash String?
+  roleType     String   @default("team_member") // "ceo" | "team_member"
+  createdAt    DateTime @default(now())
 
   assignedProjects ProjectAssignee[]
   submissions      Submission[]
