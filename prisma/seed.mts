@@ -1,6 +1,7 @@
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import bcrypt from 'bcryptjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dbPath = resolve(__dirname, '..', 'dev.db');
@@ -32,6 +33,8 @@ const RESEARCH_PHASES = [
   { name: "Done", checklist: ["Knowledge transferred", "Artifacts archived"] },
 ];
 
+const DEV_PASSWORD_HASH = await bcrypt.hash("password123", 10);
+
 await prisma.feedback.deleteMany();
 await prisma.submission.deleteMany();
 await prisma.checkpoint.deleteMany();
@@ -41,19 +44,19 @@ await prisma.project.deleteMany();
 await prisma.user.deleteMany();
 
 const rahul = await prisma.user.create({
-  data: { name: "Rahul", role: "CEO", email: "rahul@projecthub.dev", avatarColor: "#3b82f6" },
+  data: { name: "Rahul Gupta", role: "CEO", email: "rahul@projecthub.dev", avatarColor: "#4F46E5", passwordHash: DEV_PASSWORD_HASH, roleType: "ceo" },
 });
 const priya = await prisma.user.create({
-  data: { name: "Priya", role: "Senior Data Scientist", email: "priya@projecthub.dev", avatarColor: "#a855f7" },
+  data: { name: "Priya Sharma", role: "Senior Data Scientist", email: "priya@projecthub.dev", avatarColor: "#9333EA", passwordHash: DEV_PASSWORD_HASH, roleType: "team_member" },
 });
 const arjun = await prisma.user.create({
-  data: { name: "Arjun", role: "Full-Stack Engineer", email: "arjun@projecthub.dev", avatarColor: "#10b981" },
+  data: { name: "Arjun Mehta", role: "Full-Stack Engineer", email: "arjun@projecthub.dev", avatarColor: "#0EA5E9", passwordHash: DEV_PASSWORD_HASH, roleType: "team_member" },
 });
 const meera = await prisma.user.create({
-  data: { name: "Meera", role: "ML Engineer", email: "meera@projecthub.dev", avatarColor: "#f59e0b" },
+  data: { name: "Meera Iyer", role: "ML Engineer", email: "meera@projecthub.dev", avatarColor: "#EC4899", passwordHash: DEV_PASSWORD_HASH, roleType: "team_member" },
 });
 const vikram = await prisma.user.create({
-  data: { name: "Vikram", role: "Backend Engineer", email: "vikram@projecthub.dev", avatarColor: "#ef4444" },
+  data: { name: "Vikram Patel", role: "Backend Engineer", email: "vikram@projecthub.dev", avatarColor: "#F59E0B", passwordHash: DEV_PASSWORD_HASH, roleType: "team_member" },
 });
 
 const engProject = await prisma.project.create({
@@ -214,5 +217,5 @@ await prisma.project.create({
   },
 });
 
-console.log("Seeded successfully! 5 users, 3 projects, submissions & feedback.");
+console.log("Seeded successfully! 5 users (with hashed passwords + roleType), 3 projects, submissions & feedback.");
 await prisma.$disconnect();
