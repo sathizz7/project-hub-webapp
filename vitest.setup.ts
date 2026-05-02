@@ -2,7 +2,19 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
-// jsdom doesn't implement matchMedia (used by next-themes and other libs).
+// jsdom is missing several browser APIs used by libs (next-themes, cmdk, etc.).
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+// @ts-expect-error - jsdom polyfill
+globalThis.ResizeObserver = ResizeObserverMock;
+
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
