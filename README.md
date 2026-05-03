@@ -18,7 +18,7 @@ After running `npm run seed`, two role accounts are available with password `pas
 Any of the other three seed users (`arjun`, `meera`, `vikram` @ `projecthub.dev`) also work with the same password and land on the team-member view.
 
 ```bash
-npm run seed          # create/reset dev database with hashed passwords
+npm run seed          # create/reset dev database — includes users, projects, tasks, leave requests, extensions, and capture sessions
 npm run dev           # start dev server at http://localhost:3000
 # visit / → redirects to /login if not authenticated
 ```
