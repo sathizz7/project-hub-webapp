@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ import {
   Info,
   Layers,
 } from "lucide-react";
-import { USERS, PROJECTS, type Project, type Phase, type Task, type ProjectCategory } from "@/lib/mock-data";
+// Mock-data removed — using real API calls
 
 const STEPS = ["Define", "AI Plan", "Review"];
 
@@ -175,7 +175,15 @@ export default function NewProjectPage() {
   // Active tab in define step
   const [defineTab, setDefineTab] = useState("basics");
 
-  const teamMembers = USERS.filter((u) => u.id !== "u1");
+  const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string; role: string; avatarColor: string; roleType: string }>>([]);
+  useEffect(() => {
+    fetch("/api/users")
+      .then(r => r.json())
+      .then((data: Array<{ id: string; name: string; role: string; avatarColor: string; roleType: string }>) => {
+        setTeamMembers(data.filter(u => u.roleType !== "ceo"));
+      })
+      .catch(() => {});
+  }, []);
 
   const toggleMember = (id: string) => {
     setSelectedMembers((prev) =>
@@ -213,15 +221,15 @@ export default function NewProjectPage() {
     }, 1500);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const newId = `p${Date.now()}`;
     const ownerId = selectedMembers[0] || "u1";
     const now = new Date();
     const tbDays = parseInt(timeboxDays) || 21;
 
     // Build phases from AI plan
-    const phases: Phase[] = [];
-    const tasks: Task[] = [];
+    const phases: unknown[] = [];
+    const tasks: unknown[] = [];
 
     if (planGenerated) {
       let dayOffset = 0;
@@ -265,7 +273,7 @@ export default function NewProjectPage() {
             estimatedHours: phaseDays * 4,
             status: "planning",
             updates: [],
-            priority: priority === "critical" ? "high" : (priority as Task["priority"]),
+            priority: priority === "critical" ? "high" : priority,
             milestones: [],
             deadlineExtensions: [],
             createdAt: now.toISOString(),
@@ -277,39 +285,23 @@ export default function NewProjectPage() {
       });
     }
 
-    const newProject: Project = {
-      id: newId,
-      title,
-      type: type as ProjectCategory,
-      category: type as ProjectCategory,
-      requirement: objective,
-      outcomeType: outcomeType as Project["outcomeType"],
-      outcomeDescription: outcomeType ? `${outcomeType} for ${title}` : `Deliverable for ${title}`,
-      intermediateSubmissions: [],
-      status: "active",
-      priority: priority as Project["priority"],
-      currentPhase: phases.length > 0 ? phases[0].name : "Planning",
-      timeboxDays: tbDays,
-      startDate: now.toISOString(),
-      techStack: planGenerated ? MOCK_AI_PLAN.techStack : [],
-      assigneeIds: selectedMembers.length > 0 ? selectedMembers : [ownerId],
-      ownerId,
-      tasks,
-      phases,
-      updates: [],
-      checkpoints: [],
-      documents: [],
-      aiPlan: planGenerated
-        ? {
-            summary: MOCK_AI_PLAN.summary,
-            risks: MOCK_AI_PLAN.risks,
-            killCriteria: MOCK_AI_PLAN.killCriteria,
-          }
-        : undefined,
-    };
-
-    PROJECTS.push(newProject);
-    router.push(`/projects/${newId}`);
+    // Save to real DB via API
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        type,
+        requirement: objective,
+        priority,
+        timeboxDays: tbDays,
+        assigneeIds: selectedMembers.length > 0 ? selectedMembers : [],
+        techStack: JSON.stringify(planGenerated ? MOCK_AI_PLAN.techStack : []),
+        aiPlan: JSON.stringify(planGenerated ? { summary: MOCK_AI_PLAN.summary, risks: MOCK_AI_PLAN.risks, killCriteria: MOCK_AI_PLAN.killCriteria } : {}),
+      }),
+    });
+    const created = await res.json() as { id: string };
+    router.push(`/projects/${created.id}`);
   };
 
   const addSuccessCriteria = () => setSuccessCriteria([...successCriteria, ""]);
@@ -1101,7 +1093,7 @@ export default function NewProjectPage() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Team</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedMembers.map((id) => {
-                    const user = USERS.find((u) => u.id === id);
+                    const user = teamMembers.find((u) => u.id === id);
                     return user ? (
                       <div key={id} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-gray-50">
                         <div
