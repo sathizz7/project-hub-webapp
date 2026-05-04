@@ -2,9 +2,7 @@
 
 ## Overview
 
-ProjectHub is a CEO-centric project management tool designed for a CEO who acts as project manager across engineering and data science departments. It provides a unified command center for tracking projects, reviewing deliverables, managing team availability, and capturing unstructured notes into actionable items.
-
-This is currently a **frontend prototype** built with mock data. There is no backend or database connected yet, though a Prisma schema and API route stubs are in place for future integration.
+ProjectHub is a CEO-centric project management tool with real authentication, a role-based interface (CEO + team members), and a live SQLite database. Built with Next.js 16 App Router, Auth.js v5, Prisma 7, Tailwind 4, and the Anthropic SDK for AI-assisted features (AI plan generation, review feedback, and note capture parsing).
 
 ## Local dev login
 
