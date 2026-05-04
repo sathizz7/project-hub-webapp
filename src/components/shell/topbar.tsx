@@ -14,7 +14,7 @@ export type TopbarProps = {
 export function Topbar({ userName, userEmail, notificationCount = 0 }: TopbarProps) {
   return (
     <header
-      className="sticky top-0 z-20 flex h-[var(--topbar-height)] items-center gap-4 border-b border-border bg-bg/80 px-6 backdrop-blur"
+      className="sticky top-0 z-20 flex h-[var(--topbar-height)] items-center gap-4 border-b border-border bg-bg/95 px-6 backdrop-blur-md"
       style={{ marginLeft: "var(--sidebar-width)" }}
     >
       <CommandPaletteTrigger className="flex-1 max-w-[480px]" />

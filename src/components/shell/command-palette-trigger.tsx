@@ -11,7 +11,7 @@ export function CommandPaletteTrigger({ className }: { className?: string }) {
     <button
       onClick={fire}
       className={cn(
-        "flex h-9 items-center gap-2 rounded-md bg-bg-muted px-3 text-sm text-fg-subtle hover:bg-bg-muted/80 transition-colors",
+        "flex h-9 items-center gap-2 rounded-md border border-border bg-bg px-3 text-sm text-fg-subtle shadow-sm transition-colors hover:border-border-strong hover:bg-bg-subtle",
         className
       )}
       aria-label="Open command palette"
