@@ -118,10 +118,10 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
       {/* Inbox + Insights */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
             Action Inbox
             {serializedInbox.length > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-fg">{serializedInbox.length}</span>
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-fg">{serializedInbox.length}</span>
             )}
           </h2>
           {serializedInbox.length === 0 ? (
@@ -134,10 +134,10 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
         </section>
 
         <section>
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg">
+          <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">
             AI Insights
             {insights.length > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-xs text-accent-fg">{insights.length}</span>
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-fg">{insights.length}</span>
             )}
           </h2>
           {insights.length === 0 ? (
@@ -155,7 +155,7 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
 
       {/* Active Projects strip */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-fg">Active Projects</h2>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-muted">Active Projects</h2>
         {activeProjects.length === 0 ? (
           <EmptyState icon={Inbox} title="No active projects" />
         ) : (
