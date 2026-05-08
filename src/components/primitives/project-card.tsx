@@ -73,7 +73,7 @@ export function ProjectCard({
       <div className="mt-4 flex items-center justify-between text-xs">
         <div className="flex items-center gap-1 text-fg-muted">
           <Clock className="h-3.5 w-3.5" />
-          <span>{daysRemaining > 0 ? `${daysRemaining}d left` : "Overdue"}</span>
+          <span>{daysRemaining > 0 ? `${daysRemaining} days left` : "Overdue"}</span>
         </div>
         <span className={cn("rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide", STATUS_PILL[status])}>
           {status}
