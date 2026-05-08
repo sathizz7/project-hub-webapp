@@ -55,9 +55,9 @@ export function ProjectCard({
         </span>
         <div className="flex items-center gap-2">
           <span aria-label={`${priority} priority`} className={cn("inline-block h-2 w-2 rounded-full", PRIORITY_DOT[priority])} />
-          <button aria-label="More" className="text-fg-subtle transition-colors hover:text-fg" onClick={e => e.preventDefault()}>
+          <span aria-label="More" className="text-fg-subtle">
             <MoreHorizontal className="h-4 w-4" />
-          </button>
+          </span>
         </div>
       </div>
       <h3 className="mt-3 truncate text-[15px] font-semibold leading-snug text-fg">{title}</h3>
