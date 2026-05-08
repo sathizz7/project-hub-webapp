@@ -37,6 +37,6 @@ describe("CaptureView", () => {
 
   it("shows recent session count in history section", () => {
     render(<CaptureView recentSessions={[mockSession, mockSession]} userId="u1" />);
-    expect(screen.getByText(/2/)).toBeInTheDocument();
+    expect(screen.getByText("Session History (2)")).toBeInTheDocument();
   });
 });
