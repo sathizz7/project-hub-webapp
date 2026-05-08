@@ -43,7 +43,7 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
         id: true, title: true, type: true, priority: true, status: true,
         startDate: true, timeboxDays: true, currentPhase: true,
         phases: { select: { status: true, phaseName: true, order: true }, orderBy: { order: "asc" } },
-        assignees: { select: { user: { select: { name: true } } } },
+        assignees: { select: { user: { select: { name: true, avatarColor: true } } } },
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
@@ -178,7 +178,7 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
                   phaseLabel={phaseLabel}
                   progress={progress}
                   daysRemaining={daysRemaining}
-                  assigneeNames={project.assignees.map(a => a.user.name)}
+                  assignees={project.assignees.map(a => ({ name: a.user.name, avatarColor: a.user.avatarColor }))}
                   className="w-72 shrink-0"
                 />
               );

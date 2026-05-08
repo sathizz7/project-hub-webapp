@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState, PageHeader } from "@/components/primitives";
-import { FileText, ChevronRight } from "lucide-react";
+import { Code2, FileText, BookOpen, Play, LayoutDashboard, type LucideIcon, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   groupByDate,
@@ -24,6 +24,14 @@ const TYPE_ICON_COLOR: Record<string, string> = {
   demo: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
 };
 
+const TYPE_ICON: Record<string, LucideIcon> = {
+  code: Code2,
+  document: FileText,
+  architecture: LayoutDashboard,
+  notebook: BookOpen,
+  demo: Play,
+};
+
 export function ReviewRow({
   sub,
   onClick,
@@ -34,12 +42,17 @@ export function ReviewRow({
   const age = formatDistanceToNow(new Date(sub.createdAt), { addSuffix: true });
   return (
     <button
-      className="group flex w-full items-center gap-3 rounded-md px-3 py-3 text-left hover:bg-bg-subtle transition-colors"
+      className="group flex w-full items-center gap-3.5 rounded-lg px-4 py-3.5 text-left hover:bg-bg-subtle transition-colors"
       onClick={onClick}
     >
-      <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded text-[11px] font-semibold uppercase", TYPE_ICON_COLOR[sub.type] ?? "bg-bg-muted text-fg-muted")}>
-        {sub.type.slice(0, 3)}
-      </span>
+      {(() => {
+        const Icon = TYPE_ICON[sub.type] ?? FileText;
+        return (
+          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", TYPE_ICON_COLOR[sub.type] ?? "bg-bg-muted text-fg-muted")}>
+            <Icon className="h-4 w-4" />
+          </span>
+        );
+      })()}
       <div className="min-w-0 flex-1">
         <span className="truncate font-medium text-sm text-fg block">{sub.title}</span>
         <p className="text-xs text-fg-muted mt-0.5">
@@ -59,7 +72,7 @@ function DateGroup({ label, subs, onSelect }: { label: string; subs: SerializedR
   return (
     <section>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-muted">{label}</h3>
-      <div className="rounded-md border border-border bg-bg divide-y divide-border">
+      <div className="overflow-hidden rounded-lg border border-border bg-bg divide-y divide-border">
         {subs.map((sub) => (
           <ReviewRow key={sub.id} sub={sub} onClick={() => onSelect(sub)} />
         ))}
