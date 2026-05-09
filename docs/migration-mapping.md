@@ -54,6 +54,7 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 | `POST /api/ai/generate-plan` | `POST /api/v1/ai/generate-plan` | ⏳ | 6 | LiteLLM + Gemini |
 | `POST /api/ai/review` | `POST /api/v1/ai/review` | ⏳ | 6 | |
 | `POST /api/ai/suggest-stack` | `POST /api/v1/ai/suggest-stack` | ⏳ | 6 | |
+| (no equivalent today) | `GET /healthz` | ⏳ | 1 | new — backend liveness probe; optional `?deep=1` for DB ping |
 
 ## How to update
 
