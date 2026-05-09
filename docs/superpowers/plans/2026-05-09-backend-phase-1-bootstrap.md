@@ -24,7 +24,7 @@
 | Postgres ID generation | `gen_random_uuid()` from `pgcrypto` extension | spec rule (UUID PKs end-to-end). Enabled once in 0001 migration. |
 | Test database isolation | Separate `projecthub_test` DB created/torn down by pytest fixture | matches the IAS test pattern; avoids test pollution of dev data. |
 | psycopg version | **psycopg v3** (with `[pool]` extra) | per skill default; better async story than psycopg2; cleanly supports the connection pool we need. |
-| Local Postgres provisioning | `backend/docker-compose.yml` running Postgres 16 on `:5432` with persisted volume | matches user's stated dev approach (local Postgres, not RDS yet). One command up: `docker compose up -d postgres`. |
+| Local Postgres provisioning | **User's existing native Postgres install (pgAdmin)** on `:5432` — no Docker | Decided during execution (2026-05-09): user already has a local Postgres install and a `projecthub` database. Skipping Docker avoids port conflicts and matches the user's existing tooling. Phase 1 production `Dockerfile` is unaffected (it targets cloud deploy, not local dev). |
 | Connection lifecycle | Single `ConnectionPool` opened at FastAPI startup, closed at shutdown via lifespan handler | one pool, route functions check out a connection per request; matches skill rule. |
 | `GET /healthz` shape | Default returns `{status: "success", data: {ok: true}}`. With `?deep=1`, executes `SELECT 1` against DB and includes `db: "ok"` in payload (or `503` on failure) | gives us a real probe for both load balancer + manual debugging. |
 | Test fixture data scope | Tests use **fresh tables per test class** — fixture truncates all tables in dependency order before each class | faster than recreating schema; simpler than per-test isolation. |
@@ -64,7 +64,6 @@ backend/
 │   ├── test_db.py
 │   ├── test_health.py
 │   └── test_schema.py           # introspection: all tables + columns + indexes exist after migration
-├── docker-compose.yml           # postgres:16 on :5432, named volume, healthcheck
 ├── Dockerfile                   # python:3.12-slim, gunicorn+uvicorn workers
 ├── pyproject.toml               # PEP 621, deps + dev deps + ruff + mypy config
 ├── alembic.ini                  # script_location, sqlalchemy.url placeholder (overridden by env.py)
@@ -260,89 +259,89 @@ EOF
 
 ---
 
-### Task 3: Local Postgres via docker-compose
+### Task 3: Verify local Postgres + create test database
 
-**Files:**
-- Create: `backend/docker-compose.yml`
+**Files:** none (verification + create-DB only)
 
-- [ ] **Step 1: Create `backend/docker-compose.yml`**
+This task originally created a `docker-compose.yml`. Per the executor's machine setup, we instead use the user's pre-existing native Postgres install. No Docker container is started.
 
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    container_name: projecthub-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: projecthub
-    ports:
-      - "5432:5432"
-    volumes:
-      - projecthub_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d projecthub"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+- [ ] **Step 1: Confirm the local Postgres is running and `projecthub` exists**
 
-volumes:
-  projecthub_pgdata:
-    name: projecthub_pgdata
-```
-
-- [ ] **Step 2: Start Postgres and verify**
+Activate the venv (so `psycopg` is available) and run a connection test:
 
 ```bash
 cd backend
-docker compose up -d postgres
+source .venv/Scripts/activate    # Windows Git Bash; macOS/Linux: source .venv/bin/activate
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub') as conn:
+    with conn.cursor() as cur:
+        cur.execute('SELECT version()')
+        print('Connected:', cur.fetchone()[0])
+        cur.execute('SELECT current_database()')
+        print('Database:', cur.fetchone()[0])
+"
 ```
 
-Wait ~10 seconds for the container to become healthy.
+Expected: a Postgres version banner and `Database: projecthub`.
+
+If this fails with `connection refused`, your local Postgres service isn't running — start it via `pgAdmin` (or Windows `services.msc` for `postgresql-x64-XX`) and retry. If it fails with `password authentication failed`, your local Postgres password isn't `postgres`; update `backend/.env.local` (gitignored) with the real password before continuing.
+
+- [ ] **Step 2: Create the `projecthub_test` database (used by pytest fixtures later)**
 
 ```bash
-docker compose ps postgres
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/postgres', autocommit=True) as conn:
+    with conn.cursor() as cur:
+        cur.execute(\"SELECT 1 FROM pg_database WHERE datname = 'projecthub_test'\")
+        if cur.fetchone():
+            print('projecthub_test already exists')
+        else:
+            cur.execute('CREATE DATABASE projecthub_test')
+            print('Created projecthub_test')
+"
 ```
 
-Expected: `STATUS` column shows `Up X seconds (healthy)`.
-
-- [ ] **Step 3: Connect from the host to confirm reachability**
+- [ ] **Step 3: Verify `pgcrypto` extension is available (will be installed in Task 5's migration)**
 
 ```bash
-docker exec -it projecthub-postgres psql -U postgres -d projecthub -c "SELECT version();"
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub') as conn:
+    with conn.cursor() as cur:
+        cur.execute(\"SELECT count(*) FROM pg_available_extensions WHERE name = 'pgcrypto'\")
+        assert cur.fetchone()[0] == 1, 'pgcrypto extension is not available on this Postgres install'
+        print('pgcrypto extension is available')
+"
 ```
 
-Expected: Postgres 16.x version line. No errors.
+Expected: `pgcrypto extension is available`. If this fails, install postgresql-contrib (Linux/Mac) or reinstall Postgres with the contrib modules selected (Windows).
 
-- [ ] **Step 4: Create the test database (used by pytest fixtures later)**
+- [ ] **Step 4: Confirm `backend/.env.local` exists with valid creds**
 
 ```bash
-docker exec -i projecthub-postgres psql -U postgres -d postgres -c "CREATE DATABASE projecthub_test;"
+test -f backend/.env.local && echo "OK .env.local present" || echo "MISSING — create from .env.example"
 ```
 
-Expected: `CREATE DATABASE`. (If it already exists, the command errors with `database "projecthub_test" already exists` — acceptable; ignore.)
+If missing, create `backend/.env.local` (gitignored) with:
 
-- [ ] **Step 5: Commit**
-
-```bash
-cd ..
-git add backend/docker-compose.yml
-git commit -m "$(cat <<'EOF'
-feat(backend): docker-compose for local Postgres 16
-
-Single-service compose file:
-- Postgres 16 on :5432 with named volume projecthub_pgdata
-- Healthcheck via pg_isready (5s interval)
-- Reads DB_PASSWORD from env (defaults to "postgres" for dev)
-- Container name projecthub-postgres for easy docker exec
-
-Brings up with: cd backend && docker compose up -d postgres
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
-EOF
-)"
 ```
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=projecthub
+DB_USER=postgres
+DB_PASSWORD=postgres
+JWT_SECRET=dev-jwt-secret-change-in-production-32+
+ALLOWED_ORIGINS=http://localhost:3000
+GEMINI_API_KEY=
+```
+
+Adjust `DB_PASSWORD` to your actual local Postgres password if it isn't `postgres`.
+
+- [ ] **Step 5: No commit — this task creates no tracked files.**
+
+Skip the commit step. The change to "use local Postgres instead of Docker" is captured in the Decisions Locked table at the top of the plan and in the docker-compose-removal commit (a separate cleanup commit).
 
 ---
 
@@ -572,31 +571,57 @@ CREATE TABLE IF NOT EXISTS capture_item_assignees (
 
 - [ ] **Step 2: Apply schema.sql to local Postgres to verify it parses**
 
+Use Python via psycopg (works regardless of whether `psql` is on PATH on Windows). From the `backend/` directory with the venv active:
+
 ```bash
-docker exec -i projecthub-postgres psql -U postgres -d projecthub < backend/schema.sql
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub', autocommit=True) as conn:
+    with conn.cursor() as cur:
+        with open('schema.sql', 'r', encoding='utf-8') as f:
+            cur.execute(f.read())
+print('schema.sql applied successfully')
+"
 ```
 
-Expected output: a stream of `CREATE EXTENSION`, `CREATE TABLE`, `CREATE INDEX` lines, no `ERROR:` lines.
+Expected: `schema.sql applied successfully`. No exceptions raised.
 
 - [ ] **Step 3: Verify all tables exist**
 
 ```bash
-docker exec -it projecthub-postgres psql -U postgres -d projecthub -c "\dt"
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub') as conn:
+    with conn.cursor() as cur:
+        cur.execute(\"\"\"
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        \"\"\")
+        tables = [row[0] for row in cur.fetchall()]
+        print(len(tables), 'tables:', tables)
+"
 ```
 
-Expected: 14 tables listed (`capture_item_assignees`, `capture_items`, `capture_sessions`, `checkpoints`, `deadline_extensions`, `feedback`, `leave_requests`, `phases`, `project_assignees`, `projects`, `submissions`, `tasks`, `users`).
+Expected: **13 tables** — `capture_item_assignees`, `capture_items`, `capture_sessions`, `checkpoints`, `deadline_extensions`, `feedback`, `leave_requests`, `phases`, `project_assignees`, `projects`, `submissions`, `tasks`, `users`. (The spec says "14 tables" but counts `pgcrypto` as a top-level item; the actual user-data table count is 13.)
 
-Wait — that's 13. The 14th is implicit: there's no `health` table; `pgcrypto` is an extension, not a table. Let me recount: users, projects, project_assignees, phases, tasks, submissions, feedback, checkpoints, leave_requests, deadline_extensions, capture_sessions, capture_items, capture_item_assignees = **13 tables**. The spec says "14 tables" but counts pgcrypto as a top-level item; the actual user-data table count is 13. Fine — all 13 should be present.
+- [ ] **Step 4: Drop tables to give Alembic (Task 5) a clean slate**
 
-- [ ] **Step 4: Drop and reapply to confirm idempotency (optional sanity check)**
+The schema.sql we just applied will collide with Alembic's 0001 migration. Drop it now:
 
 ```bash
-docker exec -i projecthub-postgres psql -U postgres -d projecthub -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-docker exec -i projecthub-postgres psql -U postgres -d projecthub < backend/schema.sql
-docker exec -it projecthub-postgres psql -U postgres -d projecthub -c "\dt"
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub', autocommit=True) as conn:
+    with conn.cursor() as cur:
+        cur.execute('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
+        cur.execute('GRANT ALL ON SCHEMA public TO postgres;')
+        cur.execute('GRANT ALL ON SCHEMA public TO public;')
+print('public schema reset')
+"
 ```
 
-Expected: same 13 tables. `IF NOT EXISTS` makes this idempotent.
+Expected: `public schema reset`. Task 5 will reapply the same DDL via Alembic, this time tracked by `alembic_version`.
 
 - [ ] **Step 5: Commit**
 
@@ -1019,16 +1044,24 @@ After Task 6 establishes `app/config.py`:
 ```bash
 cd backend
 source .venv/Scripts/activate    # or .venv/bin/activate on Unix
-# Drop tables that schema.sql created in Task 4 to start from a clean state
-docker exec -i projecthub-postgres psql -U postgres -d projecthub -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-# Apply via Alembic
+# Task 4 Step 4 already reset the public schema. Apply via Alembic:
 alembic upgrade head
 ```
 
 Expected output: `INFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema — 13 tables + indexes + pgcrypto`. No errors.
 
 ```bash
-docker exec -it projecthub-postgres psql -U postgres -d projecthub -c "\dt"
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub') as conn:
+    with conn.cursor() as cur:
+        cur.execute(\"\"\"
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        \"\"\")
+        print(*[row[0] for row in cur.fetchall()], sep='\n')
+"
 ```
 
 Expected: 14 tables (13 user tables + `alembic_version`).
@@ -2176,7 +2209,14 @@ python -m scripts.seed
 Expected output: `Seed complete.` Verify:
 
 ```bash
-docker exec -it projecthub-postgres psql -U postgres -d projecthub -c "SELECT email, role_type FROM users ORDER BY email;"
+PYTHONIOENCODING=utf-8 python -c "
+import psycopg
+with psycopg.connect('postgresql://postgres:postgres@localhost:5432/projecthub') as conn:
+    with conn.cursor() as cur:
+        cur.execute('SELECT email, role_type FROM users ORDER BY email')
+        for row in cur.fetchall():
+            print(row)
+"
 ```
 
 Expected: 5 users listed (1 ceo + 4 team_members).
@@ -2472,8 +2512,9 @@ FastAPI + Postgres backend — see [`../docs/superpowers/specs/2026-05-09-projec
 ## Quickstart
 
 ```bash
-# 1. Bring up local Postgres (one-time per dev session)
-docker compose up -d postgres
+# 1. Make sure your local Postgres is running and a `projecthub` database exists
+#    (create it via pgAdmin or `createdb -U postgres projecthub` once).
+#    Also create `projecthub_test` for the test suite (one-time).
 
 # 2. Install Python deps in a virtualenv (one-time)
 python -m venv .venv
@@ -2482,7 +2523,8 @@ pip install -e ".[dev]"
 
 # 3. Configure (one-time)
 cp .env.example .env.local
-# Edit .env.local — set DB_PASSWORD, JWT_SECRET (32+ chars random), GEMINI_API_KEY
+# Edit .env.local — set DB_PASSWORD to your local Postgres password,
+# JWT_SECRET (32+ chars random), GEMINI_API_KEY (used in Phase 6).
 
 # 4. Apply migrations
 alembic upgrade head
@@ -2650,8 +2692,8 @@ Expected: branch pushed; PR URL printed.
 After all tasks complete:
 
 1. Branch `feature/backend-phase-1-bootstrap` exists with ~12-14 commits, all pushed to origin.
-2. `cd backend && docker compose up -d postgres` brings Postgres up; `docker compose ps postgres` shows `(healthy)`.
-3. `cd backend && alembic upgrade head` succeeds; `\dt` in psql shows 13 user tables + `alembic_version`.
+2. The user's local Postgres is running and `projecthub` + `projecthub_test` databases exist; connection from `psycopg` succeeds with `.env.local` credentials.
+3. `cd backend && alembic upgrade head` succeeds; introspection via psycopg shows 13 user tables + `alembic_version`.
 4. `cd backend && python -m scripts.seed` populates 5 users + 2 projects; rerunning is a no-op.
 5. `cd backend && pytest -v` runs **25 tests across 7 files**, all green.
 6. `cd backend && uvicorn app.main:app --reload --port 8000` boots without errors. `curl http://localhost:8000/healthz` returns `{"status":"success","message":"OK","data":{"ok":true}}`. `?deep=1` adds `"db":"ok"`. `http://localhost:8000/docs` shows Swagger UI.
