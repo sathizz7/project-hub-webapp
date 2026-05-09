@@ -1611,7 +1611,7 @@ def test_get_conn_yields_a_connection() -> None:
             cur.execute("SELECT 1 AS one")
             row = cur.fetchone()
             assert row is not None
-            assert row[0] == 1
+            assert row["one"] == 1   # dict_row factory — use named access throughout
 
 
 def test_get_conn_returns_dict_rows() -> None:
@@ -1669,6 +1669,7 @@ def init_pool() -> None:
             min_size=1,
             max_size=10,
             kwargs={"row_factory": dict_row},
+            open=True,
         )
         _pool.wait()
 
