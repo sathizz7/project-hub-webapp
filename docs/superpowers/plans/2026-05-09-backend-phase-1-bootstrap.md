@@ -1764,9 +1764,16 @@ def _pool_lifecycle():
 
 
 @pytest.fixture
-def client() -> TestClient:
-    """FastAPI TestClient for the full application."""
-    return TestClient(app)
+def client():
+    """FastAPI TestClient for the full application.
+
+    Uses context-manager form so the FastAPI lifespan runs (init_pool /
+    close_pool). Plain `return TestClient(app)` skips lifespan and can
+    leave the pool in an uninitialized state when other tests have
+    already closed it.
+    """
+    with TestClient(app) as c:
+        yield c
 
 
 # Reverse-dependency order so foreign keys don't block truncation
