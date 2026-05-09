@@ -727,8 +727,14 @@ from app.config import settings
 # Alembic Config object
 config = context.config
 
-# Override the sqlalchemy.url placeholder with the runtime DB URL
-config.set_main_option("sqlalchemy.url", settings.db_url)
+# Override the sqlalchemy.url placeholder with the runtime DB URL.
+# Force the psycopg v3 driver — SQLAlchemy's default postgresql:// scheme
+# tries to load psycopg2 (v2). We use psycopg v3 in app.db; no need to
+# install psycopg2 just for migrations.
+config.set_main_option(
+    "sqlalchemy.url",
+    settings.db_url.replace("postgresql://", "postgresql+psycopg://", 1),
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
