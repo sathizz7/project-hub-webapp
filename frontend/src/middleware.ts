@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 const PUBLIC_PATHS = ["/login", "/design-demo"];
 
-export default async function middleware(req: NextRequest) {
+export default function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
@@ -13,8 +12,10 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  if (!token) {
+  // Presence check only — backend validates the token's signature/expiry.
+  // An expired token will be rejected by FastAPI on the first authenticated
+  // call, and the proxy will surface the 401 to the client.
+  if (!req.cookies.get("ph_session")) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("from", pathname);
