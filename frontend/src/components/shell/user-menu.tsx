@@ -1,7 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { LogOut, Settings as SettingsIcon, User as UserIcon } from "lucide-react";
-import { signOut } from "next-auth/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,16 @@ export type UserMenuProps = {
   email: string;
 };
 
+async function handleSignOut(router: ReturnType<typeof useRouter>) {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } finally {
+    router.push("/login");
+  }
+}
+
 export function UserMenu({ name, email }: UserMenuProps) {
+  const router = useRouter();
   const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   return (
     <DropdownMenu>
@@ -45,7 +54,7 @@ export function UserMenu({ name, email }: UserMenuProps) {
         <DropdownMenuGroup>
           <DropdownMenuItem
             className="text-danger"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => handleSignOut(router)}
           >
             <LogOut className="mr-2 h-4 w-4" />Sign out
           </DropdownMenuItem>
