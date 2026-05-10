@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
-from app.routers import health
+from app.routers import auth, health
 
 
 @asynccontextmanager
@@ -47,3 +47,4 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(health.router)
+app.include_router(auth.router)
