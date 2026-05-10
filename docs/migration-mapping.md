@@ -11,10 +11,10 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 
 | Old route (Next.js) | New route (FastAPI) | Status | Phase | Notes |
 |---|---|---|---|---|
-| `POST /api/auth/[...nextauth]` (login) | `POST /api/v1/auth/login` | ⏳ | 2 | bcrypt + JWT issuance |
-| (no equivalent today) | `POST /api/v1/auth/refresh` | ⏳ | 2 | new — refresh access token |
-| (no equivalent today) | `POST /api/v1/auth/logout` | ⏳ | 2 | clears cookies |
-| (NextAuth session helper) | `GET /api/v1/auth/me` | ⏳ | 2 | replaces `getSessionUser()` Prisma path |
+| `POST /api/auth/[...nextauth]` (login) | `POST /api/v1/auth/login` | ✅ | 2 | bcrypt + JWT issuance |
+| (no equivalent today) | `POST /api/v1/auth/refresh` | ✅ | 2 | new — refresh access token |
+| (no equivalent today) | `POST /api/v1/auth/logout` | ✅ | 2 | clears cookies |
+| (NextAuth session helper) | `GET /api/v1/auth/me` | ✅ | 2 | replaces `getSessionUser()` Prisma path |
 | `GET /api/users` | `GET /api/v1/users` | ⏳ | 3 | |
 | (no equivalent today) | `GET /api/v1/users/{id}` | ⏳ | 3 | new |
 | (no equivalent today) | `POST /api/v1/users` | ⏳ | 3 | ceo only |
