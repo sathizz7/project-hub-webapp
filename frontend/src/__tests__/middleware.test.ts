@@ -1,44 +1,41 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 
-vi.mock("next-auth/jwt", () => ({
-  getToken: vi.fn(),
-}));
-
-import { getToken } from "next-auth/jwt";
 import middleware, { config } from "@/middleware";
 import { NextRequest } from "next/server";
 
 const url = (path: string) => `http://localhost:3000${path}`;
 
+function reqWithCookie(path: string, cookie?: string): NextRequest {
+  const init: { headers?: Record<string, string> } = {};
+  if (cookie) init.headers = { cookie };
+  return new NextRequest(url(path), init);
+}
+
 describe("middleware", () => {
-  it("lets through whitelisted /login", async () => {
-    (getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    const res = await middleware(new NextRequest(url("/login")));
+  it("lets through whitelisted /login", () => {
+    const res = middleware(reqWithCookie("/login"));
     expect(res.status).toBe(200);
   });
 
-  it("lets through /api/auth/providers", async () => {
-    (getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    const res = await middleware(new NextRequest(url("/api/auth/providers")));
+  it("lets through /api/auth/providers", () => {
+    const res = middleware(reqWithCookie("/api/auth/providers"));
     expect(res.status).toBe(200);
   });
 
-  it("lets through /design-demo without a session (dev tool)", async () => {
-    (getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    const res = await middleware(new NextRequest(url("/design-demo")));
+  it("lets through /design-demo without a session (dev tool)", () => {
+    const res = middleware(reqWithCookie("/design-demo"));
     expect(res.status).toBe(200);
   });
 
-  it("redirects unauthenticated requests to /login", async () => {
-    (getToken as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    const res = await middleware(new NextRequest(url("/projects")));
+  it("redirects requests with no ph_session cookie to /login", () => {
+    const res = middleware(reqWithCookie("/projects"));
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/login");
+    expect(res.headers.get("location")).toContain("from=%2Fprojects");
   });
 
-  it("lets through authenticated requests", async () => {
-    (getToken as ReturnType<typeof vi.fn>).mockResolvedValue({ id: "u1", roleType: "ceo" });
-    const res = await middleware(new NextRequest(url("/projects")));
+  it("lets through requests carrying a ph_session cookie", () => {
+    const res = middleware(reqWithCookie("/projects", "ph_session=any-jwt-value"));
     expect(res.status).toBe(200);
   });
 

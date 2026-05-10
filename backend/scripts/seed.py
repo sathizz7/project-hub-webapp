@@ -9,9 +9,15 @@ Usage:
 """
 
 from app.db import get_conn
+from app.auth import hash_password
 
 # Static seed data — keep in sync with frontend's prisma/seed.ts as
 # long as both worlds run side-by-side (Phases 2-6).
+
+# Dev password for all seed users. Real users will set their own via
+# Phase 7's password reset flow (out of scope; not in current plan set).
+_DEV_PASSWORD = "projecthub-dev"
+_DEV_PASSWORD_HASH = hash_password(_DEV_PASSWORD)
 
 _USERS = [
     {
@@ -20,7 +26,7 @@ _USERS = [
         "role": "Chief Executive Officer",
         "role_type": "ceo",
         "avatar_color": "#4F46E5",
-        "password_hash": "$2b$12$placeholderhashreplacedinphase2",
+        "password_hash": _DEV_PASSWORD_HASH,
     },
     {
         "name": "Arjun Mehta",
@@ -28,7 +34,7 @@ _USERS = [
         "role": "Senior Engineer",
         "role_type": "team_member",
         "avatar_color": "#14B8A6",
-        "password_hash": "$2b$12$placeholderhashreplacedinphase2",
+        "password_hash": _DEV_PASSWORD_HASH,
     },
     {
         "name": "Priya Sharma",
@@ -36,7 +42,7 @@ _USERS = [
         "role": "Product Designer",
         "role_type": "team_member",
         "avatar_color": "#F472B6",
-        "password_hash": "$2b$12$placeholderhashreplacedinphase2",
+        "password_hash": _DEV_PASSWORD_HASH,
     },
     {
         "name": "Vikram Rao",
@@ -44,7 +50,7 @@ _USERS = [
         "role": "Data Scientist",
         "role_type": "team_member",
         "avatar_color": "#A855F7",
-        "password_hash": "$2b$12$placeholderhashreplacedinphase2",
+        "password_hash": _DEV_PASSWORD_HASH,
     },
     {
         "name": "Lakshmi Nair",
@@ -52,7 +58,7 @@ _USERS = [
         "role": "Engineering Manager",
         "role_type": "team_member",
         "avatar_color": "#F59E0B",
-        "password_hash": "$2b$12$placeholderhashreplacedinphase2",
+        "password_hash": _DEV_PASSWORD_HASH,
     },
 ]
 

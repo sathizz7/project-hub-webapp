@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,13 +19,22 @@ export function LoginForm({ error }: { error?: string }) {
     e.preventDefault();
     setServerError(null);
     start(async () => {
-      const res = await signIn("credentials", { email, password, redirect: false });
-      if (res?.error) {
-        setServerError("Invalid email or password");
-        return;
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const envelope = await res.json().catch(() => null);
+        if (!res.ok || envelope?.status !== "success") {
+          setServerError(envelope?.message ?? "Invalid email or password");
+          return;
+        }
+        router.replace(from);
+        router.refresh();
+      } catch {
+        setServerError("Network error — please try again");
       }
-      router.replace(from);
-      router.refresh();
     });
   };
 

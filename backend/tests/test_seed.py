@@ -50,3 +50,17 @@ def test_seed_creates_a_ceo(db_clean: None) -> None:
             ceo_count = cur.fetchone()["c"]
 
     assert ceo_count == 1
+
+
+def test_seed_users_have_verifiable_password(db_clean: None) -> None:
+    """The dev password 'projecthub-dev' verifies against every seeded user's hash."""
+    from app.auth import verify_password
+    seed()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT email, password_hash FROM users ORDER BY email")
+            rows = cur.fetchall()
+    assert len(rows) == 5
+    for row in rows:
+        assert verify_password("projecthub-dev", row["password_hash"]), \
+            f"Dev password should verify for {row['email']}"
