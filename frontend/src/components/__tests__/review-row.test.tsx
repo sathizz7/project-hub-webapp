@@ -35,7 +35,7 @@ describe("ReviewRow", () => {
 
   it("shows feedback count", () => {
     render(<ReviewRow sub={sub} onClick={() => {}} />);
-    expect(screen.getByText(/1/)).toBeInTheDocument();
+    expect(screen.getByText(/1 review/i)).toBeInTheDocument();
   });
 
   it("calls onClick when the row is clicked", async () => {

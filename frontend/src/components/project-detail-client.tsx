@@ -121,16 +121,18 @@ export function ProjectDetailClient({
   const aiPlan = JSON.parse(project.aiPlan || "{}");
 
   async function advancePhase(currentPhaseId: string, nextPhaseId: string | null) {
-    await fetch("/api/phases", {
+    await fetch(`/api/proxy/v1/phases/${currentPhaseId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        phaseId: currentPhaseId,
-        status: "completed",
-        projectId: project.id,
-        nextPhaseId,
-      }),
+      body: JSON.stringify({ status: "completed" }),
     });
+    if (nextPhaseId) {
+      await fetch(`/api/proxy/v1/phases/${nextPhaseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      });
+    }
     router.refresh();
     window.location.reload();
   }
