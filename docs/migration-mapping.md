@@ -15,19 +15,19 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 | (no equivalent today) | `POST /api/v1/auth/refresh` | ✅ | 2 | new — refresh access token |
 | (no equivalent today) | `POST /api/v1/auth/logout` | ✅ | 2 | clears cookies |
 | (NextAuth session helper) | `GET /api/v1/auth/me` | ✅ | 2 | replaces `getSessionUser()` Prisma path |
-| `GET /api/users` | `GET /api/v1/users` | ⏳ | 3 | |
-| (no equivalent today) | `GET /api/v1/users/{id}` | ⏳ | 3 | new |
-| (no equivalent today) | `POST /api/v1/users` | ⏳ | 3 | ceo only |
-| (no equivalent today) | `PATCH /api/v1/users/{id}` | ⏳ | 3 | ceo only |
-| `GET /api/projects` | `GET /api/v1/projects` | ⏳ | 3 | hydrated: assignees + progress |
-| `POST /api/projects` | `POST /api/v1/projects` | ⏳ | 3 | ceo only; auto-creates phases |
-| `GET /api/projects/[id]` | `GET /api/v1/projects/{id}` | ⏳ | 3 | hydrated: phases + assignees + submissions + tasks + checkpoints |
-| `PATCH /api/projects/[id]` | `PATCH /api/v1/projects/{id}` | ⏳ | 3 | |
-| (no equivalent today) | `POST /api/v1/projects/{id}/assignees` | ⏳ | 3 | new |
-| (no equivalent today) | `DELETE /api/v1/projects/{id}/assignees/{user_id}` | ⏳ | 3 | new |
-| (no equivalent today) | `GET /api/v1/my/projects` | ⏳ | 3 | team-member-scoped |
-| `PATCH /api/phases` | `PATCH /api/v1/phases/{id}` | ⏳ | 3 | resource id moves to path |
-| (no equivalent today) | `GET /api/v1/projects/{id}/phases` | ⏳ | 3 | new |
+| `GET /api/users` | `GET /api/v1/users` | ✅ | 3 | |
+| (no equivalent today) | `GET /api/v1/users/{id}` | ✅ | 3 | new |
+| (no equivalent today) | `POST /api/v1/users` | ✅ | 3 | ceo only |
+| (no equivalent today) | `PATCH /api/v1/users/{id}` | ✅ | 3 | ceo only |
+| `GET /api/projects` | `GET /api/v1/projects` | ✅ | 3 | hydrated: assignees + progress |
+| `POST /api/projects` | `POST /api/v1/projects` | ✅ | 3 | ceo only; auto-creates phases |
+| `GET /api/projects/[id]` | `GET /api/v1/projects/{id}` | ✅ | 3 | hydrated: phases + assignees + submissions + tasks + checkpoints |
+| `PATCH /api/projects/[id]` | `PATCH /api/v1/projects/{id}` | ✅ | 3 | |
+| (no equivalent today) | `POST /api/v1/projects/{id}/assignees` | ✅ | 3 | new |
+| (no equivalent today) | `DELETE /api/v1/projects/{id}/assignees/{user_id}` | ✅ | 3 | new |
+| (no equivalent today) | `GET /api/v1/my/projects` | ✅ | 3 | team-member-scoped |
+| `PATCH /api/phases` | `PATCH /api/v1/phases/{id}` | ✅ | 3 | resource id moves to path |
+| (no equivalent today) | `GET /api/v1/projects/{id}/phases` | ✅ | 3 | new |
 | `PATCH /api/tasks/[id]` | `PATCH /api/v1/tasks/{id}` | ⏳ | 4 | |
 | (no equivalent today) | `GET /api/v1/tasks` | ⏳ | 4 | new — list with filters |
 | (no equivalent today) | `GET /api/v1/tasks/{id}` | ⏳ | 4 | new |
