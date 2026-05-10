@@ -176,11 +176,24 @@ export default function NewProjectPage() {
   const [defineTab, setDefineTab] = useState("basics");
 
   const [teamMembers, setTeamMembers] = useState<Array<{ id: string; name: string; role: string; avatarColor: string; roleType: string }>>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   useEffect(() => {
-    fetch("/api/users")
+    fetch("/api/proxy/v1/users")
       .then(r => r.json())
-      .then((data: Array<{ id: string; name: string; role: string; avatarColor: string; roleType: string }>) => {
-        setTeamMembers(data.filter(u => u.roleType !== "ceo"));
+      .then((envelope: { status: string; data: Array<{ id: string; name: string; role: string; role_type: string; avatar_color: string }> }) => {
+        if (envelope.status !== "success") return;
+        setTeamMembers(
+          envelope.data
+            .filter(u => u.role_type !== "ceo")
+            .map(u => ({
+              id: u.id,
+              name: u.name,
+              role: u.role,
+              roleType: u.role_type,
+              avatarColor: u.avatar_color,
+            }))
+        );
       })
       .catch(() => {});
   }, []);
@@ -222,86 +235,42 @@ export default function NewProjectPage() {
   };
 
   const handleCreate = async () => {
-    const newId = `p${Date.now()}`;
-    const ownerId = selectedMembers[0] || "u1";
-    const now = new Date();
+    setSubmitError(null);
+    setIsSubmitting(true);
     const tbDays = parseInt(timeboxDays) || 21;
 
-    // Build phases from AI plan
-    const phases: unknown[] = [];
-    const tasks: unknown[] = [];
+    const body = {
+      title,
+      type,
+      requirement: objective,
+      priority,
+      timebox_days: tbDays,
+      assignee_ids: selectedMembers.length > 0 ? selectedMembers : [],
+      tech_stack: planGenerated ? MOCK_AI_PLAN.techStack : [],
+      ai_plan: planGenerated
+        ? { summary: MOCK_AI_PLAN.summary, risks: MOCK_AI_PLAN.risks, killCriteria: MOCK_AI_PLAN.killCriteria }
+        : {},
+    };
 
-    if (planGenerated) {
-      let dayOffset = 0;
-      MOCK_AI_PLAN.phases.forEach((ph, idx) => {
-        const durMatch = ph.estimatedDuration.match(/(\d+)/);
-        const phaseDays = durMatch ? parseInt(durMatch[1]) + 1 : 3;
-        const startDate = new Date(now);
-        startDate.setDate(startDate.getDate() + dayOffset);
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + phaseDays);
-
-        const phaseId = `${newId}-ph${idx + 1}`;
-        phases.push({
-          id: phaseId,
-          name: ph.name,
-          description: ph.description,
-          status: idx === 0 ? "active" : "pending",
-          checklist: ph.deliverables.map((d) => ({ item: d, done: false })),
-          discussions: [],
-          attachments: [],
-          signOffRequired: true,
-          estimatedDuration: ph.estimatedDuration,
-          order: idx + 1,
-          startDate: startDate.toISOString().split("T")[0],
-          endDate: endDate.toISOString().split("T")[0],
-        });
-
-        // Create a task per deliverable
-        ph.deliverables.forEach((del, di) => {
-          const assignee = selectedMembers[(idx + di) % selectedMembers.length] || ownerId;
-          tasks.push({
-            id: `${newId}-t${tasks.length + 1}`,
-            title: del,
-            description: `${del} (${ph.name} phase)`,
-            assigneeId: assignee,
-            approach: "",
-            planStatus: "ai_generated",
-            steps: [],
-            successCriteria: [],
-            killCriteria: [],
-            estimatedHours: phaseDays * 4,
-            status: "planning",
-            updates: [],
-            priority: priority === "critical" ? "high" : priority,
-            milestones: [],
-            deadlineExtensions: [],
-            createdAt: now.toISOString(),
-            phaseId,
-          });
-        });
-
-        dayOffset += phaseDays;
+    try {
+      const res = await fetch("/api/proxy/v1/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-    }
+      const envelope = await res.json() as { status: string; message?: string; data: { id: string } };
 
-    // Save to real DB via API
-    const res = await fetch("/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        type,
-        requirement: objective,
-        priority,
-        timeboxDays: tbDays,
-        assigneeIds: selectedMembers.length > 0 ? selectedMembers : [],
-        techStack: JSON.stringify(planGenerated ? MOCK_AI_PLAN.techStack : []),
-        aiPlan: JSON.stringify(planGenerated ? { summary: MOCK_AI_PLAN.summary, risks: MOCK_AI_PLAN.risks, killCriteria: MOCK_AI_PLAN.killCriteria } : {}),
-      }),
-    });
-    const created = await res.json() as { id: string };
-    router.push(`/projects/${created.id}`);
+      if (!res.ok || envelope.status !== "success") {
+        setSubmitError(envelope.message ?? "Failed to create project");
+        return;
+      }
+
+      router.push(`/projects/${envelope.data.id}`);
+    } catch {
+      setSubmitError("Network error — please try again");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addSuccessCriteria = () => setSuccessCriteria([...successCriteria, ""]);
@@ -1155,10 +1124,27 @@ export default function NewProjectPage() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back to Plan
             </Button>
-            <Button size="lg" className="gap-2" onClick={handleCreate}>
-              <Rocket className="h-4 w-4" />
-              Create Project
-            </Button>
+            <div className="flex flex-col items-end gap-2">
+              {submitError && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {submitError}
+                </p>
+              )}
+              <Button size="lg" className="gap-2" onClick={handleCreate} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="h-4 w-4" />
+                    Create Project
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
