@@ -204,6 +204,12 @@ def test_list_submissions_with_include_feedback_returns_nested(
         assert "is_ai" in fb
         assert "created_at" in fb
         assert "from_user_id" in fb
+        assert "from_user" in fb
+        # These are non-AI feedback rows with a real from_user_id (CEO posted them)
+        assert isinstance(fb["from_user"], dict)
+        assert "id" in fb["from_user"]
+        assert "name" in fb["from_user"]
+        assert "avatar_color" in fb["from_user"]
 
 
 def test_list_submissions_without_include_does_not_return_feedback(
@@ -267,3 +273,185 @@ def test_list_submissions_include_feedback_batched_correctness(
         assert "feedback" in sub
         assert len(sub["feedback"]) == 1
         assert sub["feedback"][0]["text"] == f"fb for {sid}"
+
+
+def test_list_submissions_include_project_hydrates_project(
+    setup: dict, client: TestClient
+) -> None:
+    """?include=project embeds {id, title, requirement} on each submission row."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+        json={"project_id": setup["project_id"], "title": "ProjSub", "type": "code"},
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    resp = client.get(
+        "/api/v1/submissions?include=project",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    sub = next(s for s in data if s["id"] == sid)
+    assert "project" in sub
+    project = sub["project"]
+    assert isinstance(project, dict)
+    assert project["id"] == setup["project_id"]
+    assert "title" in project
+    assert "requirement" in project
+
+
+def test_list_submissions_include_phase_hydrates_phase(
+    setup: dict, client: TestClient
+) -> None:
+    """?include=phase embeds {id, phase_name} on submissions that have a phase_id."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+        json={
+            "project_id": setup["project_id"],
+            "phase_id": setup["first_phase_id"],
+            "title": "PhaseSub",
+            "type": "document",
+        },
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    resp = client.get(
+        "/api/v1/submissions?include=phase",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    sub = next(s for s in data if s["id"] == sid)
+    assert "phase" in sub
+    phase = sub["phase"]
+    assert isinstance(phase, dict)
+    assert phase["id"] == setup["first_phase_id"]
+    assert "phase_name" in phase
+
+
+def test_list_submissions_include_user_hydrates_user(
+    setup: dict, client: TestClient
+) -> None:
+    """?include=user embeds {id, name, avatar_color} matching the submitter."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["member_token"]),
+        json={"project_id": setup["project_id"], "title": "UserSub", "type": "code"},
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    resp = client.get(
+        "/api/v1/submissions?include=user",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    sub = next(s for s in data if s["id"] == sid)
+    assert "user" in sub
+    embedded_user = sub["user"]
+    assert isinstance(embedded_user, dict)
+    assert embedded_user["id"] == setup["member_id"]
+    assert "name" in embedded_user
+    assert "avatar_color" in embedded_user
+
+
+def test_list_submissions_include_multiple_resources(
+    setup: dict, client: TestClient
+) -> None:
+    """?include=feedback,project,phase,user hydrates all four fields on a submission."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["member_token"]),
+        json={
+            "project_id": setup["project_id"],
+            "phase_id": setup["first_phase_id"],
+            "title": "AllIncludes",
+            "type": "document",
+        },
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    fb_resp = client.post(
+        f"/api/v1/submissions/{sid}/feedback",
+        headers=_bearer(setup["ceo_token"]),
+        json={"text": "Great work", "is_ai": False},
+    )
+    assert fb_resp.status_code == 200, fb_resp.text
+
+    resp = client.get(
+        "/api/v1/submissions?include=feedback,project,phase,user",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    sub = next(s for s in data if s["id"] == sid)
+
+    # project embed
+    assert "project" in sub
+    assert isinstance(sub["project"], dict)
+    assert sub["project"]["id"] == setup["project_id"]
+    assert "title" in sub["project"]
+    assert "requirement" in sub["project"]
+
+    # phase embed
+    assert "phase" in sub
+    assert isinstance(sub["phase"], dict)
+    assert sub["phase"]["id"] == setup["first_phase_id"]
+    assert "phase_name" in sub["phase"]
+
+    # user embed
+    assert "user" in sub
+    assert isinstance(sub["user"], dict)
+    assert sub["user"]["id"] == setup["member_id"]
+    assert "name" in sub["user"]
+    assert "avatar_color" in sub["user"]
+
+    # feedback embed with from_user
+    assert "feedback" in sub
+    assert len(sub["feedback"]) == 1
+    fb = sub["feedback"][0]
+    assert fb["text"] == "Great work"
+    assert "from_user" in fb
+    assert isinstance(fb["from_user"], dict)
+    assert "id" in fb["from_user"]
+    assert "name" in fb["from_user"]
+    assert "avatar_color" in fb["from_user"]
+
+
+def test_list_submissions_include_unknown_value_ignored(
+    setup: dict, client: TestClient
+) -> None:
+    """Unknown include values are silently ignored; known values still work."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+        json={"project_id": setup["project_id"], "title": "UnknownInclude", "type": "code"},
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    fb_resp = client.post(
+        f"/api/v1/submissions/{sid}/feedback",
+        headers=_bearer(setup["ceo_token"]),
+        json={"text": "Feedback here", "is_ai": False},
+    )
+    assert fb_resp.status_code == 200, fb_resp.text
+
+    resp = client.get(
+        "/api/v1/submissions?include=feedback,frobnicate",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    sub = next(s for s in data if s["id"] == sid)
+    # feedback is hydrated (known include)
+    assert "feedback" in sub
+    assert len(sub["feedback"]) == 1
+    # unknown key is not present
+    assert "frobnicate" not in sub
