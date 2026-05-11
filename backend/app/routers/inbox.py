@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from app.auth import require_roles
+from app.auth import CurrentUser, get_current_user, require_roles
 from app.db import get_conn
 from app.responses import ok
 
@@ -19,11 +19,11 @@ def _user_summary(row: dict, prefix: str = "u_") -> dict:
 
 
 @router.get("", dependencies=[Depends(require_roles("ceo"))])
-def get_inbox() -> dict:
-    """Return all pending leaves + pending extensions for the CEO."""
+def get_inbox(user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Return pending leaves, extensions, reviews, and captures for the CEO."""
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # Pending leaves with requester
+            # 1. Pending leaves with requester
             cur.execute(
                 """
                 SELECT l.id, l.type, l.start_date, l.end_date, l.days, l.reason,
@@ -47,7 +47,7 @@ def get_inbox() -> dict:
                     "created_at": r["created_at"].isoformat() if r["created_at"] else None,
                 })
 
-            # Pending extensions with requester + project + task
+            # 2. Pending extensions with requester + project + task
             cur.execute(
                 """
                 SELECT e.id, e.project_id, e.task_id, e.original_deadline,
@@ -79,7 +79,75 @@ def get_inbox() -> dict:
                     "created_at": r["created_at"].isoformat() if r["created_at"] else None,
                 })
 
+            # 3. Submissions not yet reviewed by the calling CEO.
+            # Orphan rows (NULL project_id or user_id) are filtered out via the
+            # WHERE clause — real data should never have these gaps, and if it
+            # does the CEO can investigate separately.
+            cur.execute(
+                """
+                SELECT
+                    s.id, s.title, s.created_at,
+                    p.id   AS p_id,   p.title AS p_title,
+                    u.id   AS u_id,   u.name  AS u_name,
+                    u.avatar_color    AS u_avatar_color
+                FROM submissions s
+                LEFT JOIN projects p ON s.project_id = p.id
+                LEFT JOIN users    u ON s.user_id    = u.id
+                WHERE p.id IS NOT NULL
+                  AND u.id IS NOT NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM feedback f
+                      WHERE f.submission_id = s.id
+                        AND f.from_user_id  = %s
+                  )
+                ORDER BY s.created_at ASC
+                """,
+                (user.user_id,),
+            )
+            pending_reviews = []
+            for r in cur.fetchall():
+                pending_reviews.append({
+                    "id": str(r["id"]),
+                    "title": r["title"],
+                    "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                    "project": {
+                        "id": str(r["p_id"]),
+                        "title": r["p_title"],
+                    },
+                    "submitter": {
+                        "id": str(r["u_id"]),
+                        "name": r["u_name"],
+                        "avatar_color": r["u_avatar_color"],
+                    },
+                })
+
+            # 4. Pending capture items from the calling CEO's own sessions.
+            # The DB column is named `type`; renamed to `item_type` in the API
+            # response to match the frontend CaptureInboxItem.itemType field.
+            cur.execute(
+                """
+                SELECT ci.id, ci.title, ci.type, ci.priority, ci.created_at
+                FROM capture_items    ci
+                JOIN capture_sessions cs ON ci.session_id = cs.id
+                WHERE ci.status   = 'pending'
+                  AND cs.user_id  = %s
+                ORDER BY ci.created_at ASC
+                """,
+                (user.user_id,),
+            )
+            pending_captures = []
+            for r in cur.fetchall():
+                pending_captures.append({
+                    "id": str(r["id"]),
+                    "title": r["title"],
+                    "item_type": r["type"],
+                    "priority": r["priority"],
+                    "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                })
+
     return ok(data={
         "pending_leaves": pending_leaves,
         "pending_extensions": pending_extensions,
+        "pending_reviews": pending_reviews,
+        "pending_captures": pending_captures,
     })

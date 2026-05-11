@@ -101,3 +101,152 @@ def test_inbox_empty_when_nothing_pending(setup: dict, client: TestClient) -> No
 def test_inbox_member_forbidden(setup: dict, client: TestClient) -> None:
     resp = client.get("/api/v1/inbox", headers=_bearer(setup["mem_token"]))
     assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# pending_reviews
+# ---------------------------------------------------------------------------
+
+def _seed_submission(client: TestClient, ctx: dict, title: str = "Sub1") -> str:
+    """Create a submission by the team member and return its id.
+
+    The submissions POST returns 200 (not 201) — the router uses ok() without
+    an explicit status_code override.
+    """
+    resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(ctx["mem_token"]),
+        json={
+            "title": title,
+            "type": "document",
+            "project_id": ctx["project_id"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]["id"]
+
+
+def test_inbox_includes_pending_reviews(setup: dict, client: TestClient) -> None:
+    """A submission with no CEO feedback appears in pending_reviews."""
+    sub_id = _seed_submission(client, setup)
+    resp = client.get("/api/v1/inbox", headers=_bearer(setup["ceo_token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    reviews = data["pending_reviews"]
+    assert len(reviews) == 1
+    r = reviews[0]
+    assert r["id"] == sub_id
+    assert r["title"] == "Sub1"
+    # project shape
+    assert r["project"]["id"] == setup["project_id"]
+    assert isinstance(r["project"]["title"], str)
+    # submitter shape
+    assert r["submitter"]["id"] == setup["mem_id"]
+    assert isinstance(r["submitter"]["name"], str)
+    assert isinstance(r["submitter"]["avatar_color"], str)
+    assert "created_at" in r
+
+
+def test_inbox_excludes_reviews_already_feedbacked_by_ceo(
+    setup: dict, client: TestClient
+) -> None:
+    """A submission that the CEO already gave feedback on is NOT in pending_reviews."""
+    sub_id = _seed_submission(client, setup)
+    # CEO provides feedback via the nested submissions feedback route
+    fb = client.post(
+        f"/api/v1/submissions/{sub_id}/feedback",
+        headers=_bearer(setup["ceo_token"]),
+        json={"text": "LGTM"},
+    )
+    assert fb.status_code == 200, fb.text
+    resp = client.get("/api/v1/inbox", headers=_bearer(setup["ceo_token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["pending_reviews"] == []
+
+
+# ---------------------------------------------------------------------------
+# pending_captures  (seeded directly in DB — no public API for bare session/item creation)
+# ---------------------------------------------------------------------------
+
+def _db_seed_capture_session(user_id: str, raw_input: str = "capture input") -> str:
+    """Insert a capture session directly and return its id (str)."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO capture_sessions (user_id, raw_input) VALUES (%s, %s) RETURNING id",
+                (user_id, raw_input),
+            )
+            row = cur.fetchone()
+            assert row is not None
+        conn.commit()
+    return str(row["id"])
+
+
+def _db_seed_capture_item(
+    session_id: str,
+    title: str = "CaptureItem1",
+    item_type: str = "todo",
+    priority: str = "medium",
+    status: str = "pending",
+) -> str:
+    """Insert a capture item directly and return its id (str)."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO capture_items (session_id, type, title, priority, status)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (session_id, item_type, title, priority, status),
+            )
+            row = cur.fetchone()
+            assert row is not None
+        conn.commit()
+    return str(row["id"])
+
+
+def test_inbox_includes_pending_captures_for_calling_ceo(
+    setup: dict, client: TestClient
+) -> None:
+    """Pending capture items from the CEO's own sessions appear in pending_captures."""
+    sess_id = _db_seed_capture_session(setup["ceo_id"])
+    item_id = _db_seed_capture_item(sess_id, title="MyCaptureItem")
+    resp = client.get("/api/v1/inbox", headers=_bearer(setup["ceo_token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    captures = data["pending_captures"]
+    assert len(captures) == 1
+    c = captures[0]
+    assert c["id"] == item_id
+    assert c["title"] == "MyCaptureItem"
+    assert "item_type" in c
+    assert "priority" in c
+    assert "created_at" in c
+
+
+def test_inbox_excludes_pending_captures_from_other_users(
+    setup: dict, client: TestClient
+) -> None:
+    """Pending capture items from another user's sessions do NOT appear for the CEO."""
+    sess_id = _db_seed_capture_session(setup["mem_id"], "member session")
+    _db_seed_capture_item(sess_id, title="MemberItem")
+    resp = client.get("/api/v1/inbox", headers=_bearer(setup["ceo_token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    # The member's items must not bleed into the CEO's inbox
+    assert data["pending_captures"] == []
+
+
+def test_inbox_excludes_dismissed_or_converted_captures(
+    setup: dict, client: TestClient
+) -> None:
+    """Capture items with status dismissed or converted are not in pending_captures."""
+    sess_id = _db_seed_capture_session(setup["ceo_id"])
+    _db_seed_capture_item(sess_id, title="Dismissed", status="dismissed")
+    _db_seed_capture_item(sess_id, title="Converted", status="converted")
+    resp = client.get("/api/v1/inbox", headers=_bearer(setup["ceo_token"]))
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["pending_captures"] == []
