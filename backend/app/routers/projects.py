@@ -114,6 +114,7 @@ def _list_submissions(cur, project_id: str) -> list[dict]:
     for r in cur.fetchall():
         submissions.append({
             "id": str(r["id"]),
+            "phase_id": str(r["phase_id"]) if r["phase_id"] else None,
             "title": r["title"],
             "type": r["type"],
             "description": r["description"],
