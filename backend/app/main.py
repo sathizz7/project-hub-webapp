@@ -18,7 +18,7 @@ from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
 from app.routers import (
-    auth, capture, checkpoints, extensions, feedback, health, inbox, leaves,
+    ai, auth, capture, checkpoints, extensions, feedback, health, inbox, leaves,
     phases, projects, submissions, tasks, users,
 )
 
@@ -62,3 +62,4 @@ app.include_router(inbox.router)
 app.include_router(leaves.router)
 app.include_router(extensions.router)
 app.include_router(capture.router)
+app.include_router(ai.router)
