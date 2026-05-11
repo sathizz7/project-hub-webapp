@@ -1,5 +1,5 @@
 import { apiServerFetch } from "@/lib/api";
-import { computePerformanceMetrics } from "@/lib/queries/performance";
+import { computePerformanceMetrics } from "@/lib/performance";
 import { deriveDepartment, type SerializedMember } from "@/lib/team-helpers";
 import { TeamOverview } from "@/components/team/team-overview";
 

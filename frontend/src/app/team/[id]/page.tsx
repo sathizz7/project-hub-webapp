@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { computePerformanceMetrics } from "@/lib/queries/performance";
+import { computePerformanceMetrics } from "@/lib/performance";
 import { getTasksForUser, getUpcomingLeavesForUser } from "@/lib/queries";
 import { deriveDepartment, type SerializedMember, type SerializedLeaveRequest } from "@/lib/team-helpers";
 import { MemberProfile } from "@/components/team/member-profile";
