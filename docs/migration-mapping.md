@@ -47,13 +47,13 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 | (no equivalent today) | `GET /api/v1/deadline-extensions` | ✅ | 5 | new; scoped |
 | (no equivalent today) | `POST /api/v1/deadline-extensions` | ✅ | 5 | new; requested_by_id from JWT |
 | (server-side helper today) | `GET /api/v1/inbox` | ✅ | 5 | aggregator: pending leaves + extensions; ceo only |
-| `POST /api/capture/process` | `POST /api/v1/capture/process` | ⏳ | 6 | LLM parse + DB write |
-| (no equivalent today) | `GET /api/v1/capture/sessions` | ⏳ | 6 | new |
-| (no equivalent today) | `GET /api/v1/capture/sessions/{id}` | ⏳ | 6 | new |
-| (no equivalent today) | `PATCH /api/v1/capture/items/{id}` | ⏳ | 6 | new |
-| `POST /api/ai/generate-plan` | `POST /api/v1/ai/generate-plan` | ⏳ | 6 | LiteLLM + Gemini |
-| `POST /api/ai/review` | `POST /api/v1/ai/review` | ⏳ | 6 | |
-| `POST /api/ai/suggest-stack` | `POST /api/v1/ai/suggest-stack` | ⏳ | 6 | |
+| `POST /api/capture/process` | `POST /api/v1/capture/process` | ✅ | 6 | LiteLLM + Gemini parse + DB write |
+| (no equivalent today) | `GET /api/v1/capture/sessions` | ✅ | 6 | new; caller's own sessions |
+| (no equivalent today) | `GET /api/v1/capture/sessions/{id}` | ✅ | 6 | new; 404 on other users' |
+| (no equivalent today) | `PATCH /api/v1/capture/items/{id}` | ✅ | 6 | new; ownership-gated |
+| `POST /api/ai/generate-plan` | `POST /api/v1/ai/generate-plan` | ✅ | 6 | LiteLLM + Gemini; CEO only |
+| `POST /api/ai/review` | `POST /api/v1/ai/review` | ✅ | 6 | CEO only |
+| `POST /api/ai/suggest-stack` | `POST /api/v1/ai/suggest-stack` | ✅ | 6 | CEO only |
 | (no equivalent today) | `GET /healthz` | ⏳ | 1 | new — backend liveness probe; optional `?deep=1` for DB ping |
 
 ## How to update
