@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
-from app.routers import auth, health, phases, projects, users
+from app.routers import auth, health, phases, projects, tasks, users
 
 
 @asynccontextmanager
@@ -51,3 +51,4 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(phases.router)
+app.include_router(tasks.router)
