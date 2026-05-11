@@ -33,11 +33,29 @@ export type InboxExtension = {
   created_at: string;
 };
 
+export type InboxReview = {
+  id: string;
+  title: string;
+  created_at: string;
+  project: { id: string; title: string };
+  submitter: { id: string; name: string; avatar_color: string };
+};
+
+export type InboxCapture = {
+  id: string;
+  title: string;
+  item_type: string;
+  priority: string;
+  created_at: string;
+};
+
 // ── API response shapes ───────────────────────────────────────────────────────
 
 type InboxResponse = {
   pending_leaves: InboxLeave[];
   pending_extensions: InboxExtension[];
+  pending_reviews: InboxReview[];
+  pending_captures: InboxCapture[];
 };
 
 type LeaveOut = {
@@ -80,11 +98,15 @@ export default async function HomePage() {
   // CEO path — one round-trip via the aggregated inbox endpoint
   let pendingLeaves: InboxLeave[] = [];
   let pendingExtensions: InboxExtension[] = [];
+  let pendingReviews: InboxReview[] = [];
+  let pendingCaptures: InboxCapture[] = [];
 
   try {
     const inbox = await apiServerFetch<InboxResponse>("/api/v1/inbox");
     pendingLeaves = inbox.pending_leaves;
     pendingExtensions = inbox.pending_extensions;
+    pendingReviews = inbox.pending_reviews;
+    pendingCaptures = inbox.pending_captures;
   } catch (err) {
     // If the inbox endpoint is unreachable, render with empty arrays rather
     // than crashing the whole page. A 403 here would be a bug (CEO should
@@ -100,6 +122,8 @@ export default async function HomePage() {
       name={firstName}
       pendingLeaves={pendingLeaves}
       pendingExtensions={pendingExtensions}
+      pendingReviews={pendingReviews}
+      pendingCaptures={pendingCaptures}
     />
   );
 }

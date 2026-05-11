@@ -1,14 +1,69 @@
-import { prisma } from "@/lib/prisma";
-import { getActionInbox, getActiveLeaves, getOverdueTasks } from "@/lib/queries";
-import { computeProjectProgress, computeDaysRemaining, computeKpis, generateHeuristicInsights } from "@/lib/command-center-data";
+import { apiServerFetch } from "@/lib/api";
+import { computeDaysRemaining, computeKpis, generateHeuristicInsights } from "@/lib/command-center-data";
 import { PageHeader, KPIStat, ProjectCard, EmptyState } from "@/components/primitives";
 import { TodayWeekCard } from "./today-week-card";
 import { ActionInboxClientRow, type SerializedInboxItem } from "./action-inbox-client-row";
 import { InsightCardClient } from "./insight-card-client";
 import { Inbox } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import type { ReviewInboxItem, CaptureInboxItem, ExtensionInboxItem } from "@/lib/queries/inbox";
-import type { InboxLeave, InboxExtension } from "@/app/(app)/page";
+import type { InboxLeave, InboxExtension, InboxReview, InboxCapture } from "@/app/(app)/page";
+
+// ── Backend response types ────────────────────────────────────────────────────
+
+type BackendUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  role_type: string;
+  avatar_color: string;
+};
+
+type BackendProject = {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  priority: string;
+  current_phase: string | null;
+  timebox_days: number;
+  start_date: string | null;
+  progress: number;
+  assignees: BackendUser[];
+  created_at: string | null;
+};
+
+type BackendTask = {
+  id: string;
+  project_id: string | null;
+  phase_id: string | null;
+  assignee_id: string | null;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  priority: string;
+  status: string;
+  created_at: string | null;
+  updated_at: string | null;
+  completed_at: string | null;
+};
+
+type BackendLeave = {
+  id: string;
+  user_id: string;
+  type: string;
+  start_date: string | null;
+  end_date: string | null;
+  days: number | null;
+  reason: string | null;
+  status: string;
+  approved_by_id: string | null;
+  cover_person_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function insightAction(title: string): { href: string; label: string } | undefined {
   if (title.includes("overdue")) return { href: "/projects", label: "View tasks" };
@@ -18,58 +73,145 @@ function insightAction(title: string): { href: string; label: string } | undefin
   return undefined;
 }
 
+const PRIORITY_WEIGHT: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+const ageScore = (createdAt: string) => (Date.now() - new Date(createdAt).getTime()) / 86_400_000;
+
+type LocalInbox =
+  | { kind: "review"; id: string; title: string; projectTitle: string; submitterName: string; createdAt: string; urgency: number }
+  | { kind: "capture"; id: string; title: string; itemType: string; createdAt: string; urgency: number }
+  | { kind: "extension"; id: string; projectTitle: string; requesterName: string; daysRequested: number; createdAt: string; urgency: number };
+
+// ── Props ─────────────────────────────────────────────────────────────────────
+
 interface CeoCommandCenterProps {
   userId: string;
   name: string;
   pendingLeaves: InboxLeave[];
   pendingExtensions: InboxExtension[];
+  pendingReviews: InboxReview[];
+  pendingCaptures: InboxCapture[];
 }
 
-export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExtensions }: CeoCommandCenterProps) {
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export async function CeoCommandCenter({
+  userId: _userId,
+  name,
+  pendingLeaves,
+  pendingExtensions,
+  pendingReviews,
+  pendingCaptures,
+}: CeoCommandCenterProps) {
   const today = new Date();
   const weekEnd = new Date(today.getTime() + 7 * 86_400_000);
 
-  const [
-    inboxItems,
-    activeLeavesToday,
-    overdueTasks,
-    activeProjects,
-    tasksThisWeek,
-    teamCount,
-    completedCount,
-  ] = await Promise.all([
-    getActionInbox(userId),
-    getActiveLeaves(today),
-    getOverdueTasks(),
-    prisma.project.findMany({
-      where: { status: "active" },
-      select: {
-        id: true, title: true, type: true, priority: true, status: true,
-        startDate: true, timeboxDays: true, currentPhase: true,
-        phases: { select: { status: true, phaseName: true, order: true }, orderBy: { order: "asc" } },
-        assignees: { select: { user: { select: { name: true, avatarColor: true } } } },
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
-    prisma.task.findMany({
-      where: { dueDate: { gte: today, lte: weekEnd }, status: { notIn: ["completed", "killed"] } },
-      select: { id: true, title: true, dueDate: true },
-      orderBy: { dueDate: "asc" },
-      take: 5,
-    }),
-    prisma.user.count({ where: { roleType: "team_member" } }),
-    prisma.project.count({ where: { status: "completed" } }),
+  const [allUsers, allProjects, allTasks, allLeaves] = await Promise.all([
+    apiServerFetch<BackendUser[]>("/api/v1/users"),
+    apiServerFetch<BackendProject[]>("/api/v1/projects"),
+    apiServerFetch<BackendTask[]>("/api/v1/tasks"),
+    apiServerFetch<BackendLeave[]>("/api/v1/leaves?status=approved"),
   ]);
 
+  // ── Derived data ────────────────────────────────────────────────────────────
+
+  // Active projects: top 10 DESC by created_at (backend already returns DESC)
+  const activeProjects = allProjects
+    .filter(p => p.status === "active")
+    .slice(0, 10);
+
+  // Counts
+  const teamCount = allUsers.filter(u => u.role_type === "team_member").length;
+  const completedCount = allProjects.filter(p => p.status === "completed").length;
+
+  // Tasks this week: due_date in [now, now+7d], not completed/killed, top 5 ASC
+  const tasksThisWeek = allTasks
+    .filter(t => {
+      if (!t.due_date) return false;
+      if (t.status === "completed" || t.status === "killed") return false;
+      const d = new Date(t.due_date).getTime();
+      return d >= today.getTime() && d <= weekEnd.getTime();
+    })
+    .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+    .slice(0, 5);
+
+  // Overdue tasks: due_date < now, not completed/killed
+  const overdueTasks = allTasks.filter(t => {
+    if (!t.due_date) return false;
+    if (t.status === "completed" || t.status === "killed") return false;
+    return new Date(t.due_date).getTime() < today.getTime();
+  });
+
+  // Active leaves today: approved (already filtered by query), today ∈ [start, end]
+  const userById = new Map(allUsers.map(u => [u.id, u]));
+  const activeLeavesToday = allLeaves
+    .filter(l => {
+      if (!l.start_date || !l.end_date) return false;
+      const start = new Date(l.start_date).getTime();
+      const end = new Date(l.end_date).getTime();
+      return start <= today.getTime() && today.getTime() <= end;
+    })
+    .map(l => {
+      const u = userById.get(l.user_id);
+      return { user: { name: u?.name ?? "(unknown)" } };
+    });
+
+  // Upcoming leave count from pending leaves props (status=pending), within next 7 days
   const upcomingLeaveCount = pendingLeaves.filter(l =>
     new Date(l.start_date) >= today && new Date(l.start_date) <= weekEnd
   ).length;
 
+  // ── Inbox: build, score, sort ───────────────────────────────────────────────
+
+  const reviewItems: LocalInbox[] = pendingReviews.map(r => ({
+    kind: "review",
+    id: r.id,
+    title: r.title,
+    projectTitle: r.project.title,
+    submitterName: r.submitter.name,
+    createdAt: r.created_at,
+    urgency: 2 + ageScore(r.created_at),
+  }));
+
+  const captureItems: LocalInbox[] = pendingCaptures.map(c => ({
+    kind: "capture",
+    id: c.id,
+    title: c.title,
+    itemType: c.item_type,
+    createdAt: c.created_at,
+    urgency: (PRIORITY_WEIGHT[c.priority] ?? 2) + ageScore(c.created_at),
+  }));
+
+  const extensionItems: LocalInbox[] = pendingExtensions.map(e => {
+    const daysRequested = Math.round(
+      (new Date(e.requested_deadline).getTime() - new Date(e.original_deadline).getTime()) / 86_400_000
+    );
+    return {
+      kind: "extension",
+      id: e.id,
+      projectTitle: e.project_title ?? "(unknown)",
+      requesterName: e.requested_by.name,
+      daysRequested,
+      createdAt: e.created_at,
+      urgency: 3 + e.escalation_level * 2 + ageScore(e.created_at),
+    };
+  });
+
+  const allInbox = [...reviewItems, ...captureItems, ...extensionItems].sort(
+    (a, b) => b.urgency - a.urgency || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const serializedInbox: SerializedInboxItem[] = allInbox.map(item => {
+    const age = formatDistanceToNow(new Date(item.createdAt), { addSuffix: true });
+    if (item.kind === "review") return { kind: "review", id: item.id, title: item.title, projectTitle: item.projectTitle, submitterName: item.submitterName, age };
+    if (item.kind === "capture") return { kind: "capture", id: item.id, title: item.title, itemType: item.itemType, age };
+    return { kind: "extension", id: item.id, projectTitle: item.projectTitle, requesterName: item.requesterName, daysRequested: item.daysRequested, age };
+  });
+
+  // ── KPIs + Insights ─────────────────────────────────────────────────────────
+
   const kpis = computeKpis({
     activeProjectCount: activeProjects.length,
-    pendingInboxCount: inboxItems.length,
+    pendingInboxCount: allInbox.length,
     completedProjectCount: completedCount,
     teamMemberCount: teamCount,
     overdueTaskCount: overdueTasks.length,
@@ -83,21 +225,7 @@ export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExt
     })),
     upcomingLeaveCount,
     activeProjectCount: activeProjects.length,
-    pendingInboxCount: inboxItems.length,
-  });
-
-  const serializedInbox: SerializedInboxItem[] = inboxItems.map(item => {
-    const age = formatDistanceToNow(item.createdAt, { addSuffix: true });
-    if (item.kind === "review") {
-      const r = item as ReviewInboxItem;
-      return { kind: "review", id: r.id, title: r.title, projectTitle: r.project.title, submitterName: r.submitter.name, age };
-    }
-    if (item.kind === "capture") {
-      const c = item as CaptureInboxItem;
-      return { kind: "capture", id: c.id, title: c.title, itemType: c.itemType, age };
-    }
-    const e = item as ExtensionInboxItem;
-    return { kind: "extension", id: e.id, projectTitle: e.project.title, requesterName: e.requestedBy.name, daysRequested: e.daysRequested, age };
+    pendingInboxCount: allInbox.length,
   });
 
   const dateLabel = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -118,7 +246,7 @@ export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExt
         <TodayWeekCard
           activeLeavesToday={activeLeavesToday.map(l => ({ userName: l.user.name }))}
           upcomingLeaveCount={upcomingLeaveCount}
-          tasksThisWeek={tasksThisWeek.map(t => ({ id: t.id, title: t.title, dueDate: t.dueDate! }))}
+          tasksThisWeek={tasksThisWeek.map(t => ({ id: t.id, title: t.title, dueDate: new Date(t.due_date!) }))}
         />
       </div>
 
@@ -168,12 +296,9 @@ export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExt
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2">
             {activeProjects.map(project => {
-              const progress = computeProjectProgress(project.phases);
-              const daysRemaining = computeDaysRemaining(project.startDate, project.timeboxDays);
-              const activePhase = project.phases.find(p => p.status === "active") ?? project.phases[project.phases.length - 1];
-              const phaseLabel = activePhase
-                ? `${activePhase.phaseName} · Phase ${project.phases.findIndex(p => p.phaseName === activePhase.phaseName) + 1} of ${project.phases.length}`
-                : project.currentPhase || "—";
+              const progress = project.progress;
+              const daysRemaining = computeDaysRemaining(new Date(project.start_date ?? Date.now()), project.timebox_days);
+              const phaseLabel = project.current_phase || "—";
               return (
                 <ProjectCard
                   key={project.id}
@@ -185,7 +310,7 @@ export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExt
                   phaseLabel={phaseLabel}
                   progress={progress}
                   daysRemaining={daysRemaining}
-                  assignees={project.assignees.map(a => ({ name: a.user.name, avatarColor: a.user.avatarColor }))}
+                  assignees={project.assignees.map(a => ({ name: a.name, avatarColor: a.avatar_color }))}
                   className="w-72 shrink-0"
                 />
               );
