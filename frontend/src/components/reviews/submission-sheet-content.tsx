@@ -25,18 +25,20 @@ export function SubmissionSheetContent({
   async function generateAiFeedback() {
     setGenerating(true);
     try {
-      const res = await fetch("/api/ai/review", {
+      const res = await fetch("/api/proxy/v1/ai/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: sub.title,
-          type: sub.type,
+          submission_title: sub.title,
+          submission_type: sub.type,
           description: sub.description,
-          projectContext: sub.project.requirement,
+          link: sub.project.requirement,
         }),
       });
-      const data = await res.json() as { feedback?: string };
-      setFeedbackText(data.feedback ?? "");
+      const envelope = (await res.json().catch(() => null)) as
+        | { status: string; data?: { feedback?: string } }
+        | null;
+      setFeedbackText(envelope?.data?.feedback ?? "");
     } finally {
       setGenerating(false);
     }

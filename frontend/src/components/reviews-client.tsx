@@ -50,18 +50,20 @@ export function ReviewsClient({
   async function aiReview(submission: any) {
     setAiReviewing(submission.id);
     try {
-      const res = await fetch("/api/ai/review", {
+      const res = await fetch("/api/proxy/v1/ai/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: submission.title,
-          type: submission.type,
+          submission_title: submission.title,
+          submission_type: submission.type,
           description: submission.description,
-          projectContext: submission.project?.requirement,
+          link: submission.project?.requirement,
         }),
       });
-      const data = await res.json();
-      setFeedbackText((prev) => ({ ...prev, [submission.id]: data.feedback }));
+      const envelope = (await res.json().catch(() => null)) as
+        | { status: string; data?: { feedback?: string } }
+        | null;
+      setFeedbackText((prev) => ({ ...prev, [submission.id]: envelope?.data?.feedback ?? "" }));
     } catch {
       alert("AI review failed");
     } finally {
