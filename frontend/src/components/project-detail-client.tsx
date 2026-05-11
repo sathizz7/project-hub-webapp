@@ -157,44 +157,49 @@ export function ProjectDetailClient({
 
   async function submitWork() {
     setSubmitting(true);
-    await fetch("/api/submissions", {
+    const res = await fetch("/api/proxy/v1/submissions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        phaseId: submitPhaseId,
-        projectId: project.id,
-        userId: users[0]?.id,
+        project_id: project.id,
+        phase_id: submitPhaseId,
         title: submitTitle,
         type: submitType,
         description: submitDesc,
         link: submitLink,
       }),
     });
+    const envelope = await res.json().catch(() => null);
+    setSubmitting(false);
+    if (!res.ok || envelope?.status !== "success") {
+      alert(envelope?.message ?? "Failed to submit work");
+      return;
+    }
     setSubmitOpen(false);
     setSubmitTitle("");
     setSubmitDesc("");
     setSubmitLink("");
-    setSubmitting(false);
     router.refresh();
-    window.location.reload();
   }
 
   async function sendFeedback(submissionId: string) {
     const text = feedbackText[submissionId];
     if (!text) return;
-    await fetch("/api/feedback", {
+    const res = await fetch(`/api/proxy/v1/submissions/${submissionId}/feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        submissionId,
-        fromUserId: users[0]?.id,
         text,
-        isAi: false,
+        is_ai: false,
       }),
     });
+    const envelope = await res.json().catch(() => null);
+    if (!res.ok || envelope?.status !== "success") {
+      alert(envelope?.message ?? "Failed to send feedback");
+      return;
+    }
     setFeedbackText((prev) => ({ ...prev, [submissionId]: "" }));
     router.refresh();
-    window.location.reload();
   }
 
   async function aiReview(submission: any) {

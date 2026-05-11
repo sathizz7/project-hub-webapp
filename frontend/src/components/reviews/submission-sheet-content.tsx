@@ -51,11 +51,16 @@ export function SubmissionSheetContent({
       const users = usersEnvelope.data ?? [];
       const ceo = users.find((u) => u.role_type === "ceo");
       if (!ceo) return;
-      await fetch("/api/feedback", {
+      const res = await fetch(`/api/proxy/v1/submissions/${sub.id}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId: sub.id, fromUserId: ceo.id, text: feedbackText, isAi: false }),
+        body: JSON.stringify({ text: feedbackText, is_ai: false }),
       });
+      const envelope = await res.json().catch(() => null);
+      if (!res.ok || envelope?.status !== "success") {
+        alert(envelope?.message ?? "Failed to send feedback");
+        return;
+      }
       setFeedbackText("");
       router.refresh();
       onClose();
