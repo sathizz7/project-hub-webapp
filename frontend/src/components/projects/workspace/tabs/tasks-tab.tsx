@@ -18,12 +18,17 @@ export function TasksTab({ tasks }: { tasks: SerializedTask[] }) {
   async function toggleTask(task: SerializedTask) {
     setToggling(task.id);
     const newStatus = task.status === "completed" ? "in_progress" : "completed";
-    await fetch(`/api/tasks/${task.id}`, {
+    const res = await fetch(`/api/proxy/v1/tasks/${task.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+    const envelope = await res.json().catch(() => null);
     setToggling(null);
+    if (!res.ok || envelope?.status !== "success") {
+      console.error("Failed to update task:", envelope?.message ?? res.statusText);
+      return;
+    }
     router.refresh();
   }
 
