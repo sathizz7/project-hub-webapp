@@ -40,13 +40,13 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 | (no equivalent today) | `GET /api/v1/submissions/{id}/feedback` | ✅ | 4 | new |
 | `POST /api/checkpoints` | `POST /api/v1/projects/{id}/checkpoints` | ✅ | 4 | nested; CEO-only |
 | (no equivalent today) | `GET /api/v1/projects/{id}/checkpoints` | ✅ | 4 | new; CEO-only |
-| `PATCH /api/leave-requests/[id]` | `PATCH /api/v1/leaves/{id}` | ⏳ | 5 | ceo approve/reject |
-| (no equivalent today) | `GET /api/v1/leaves` | ⏳ | 5 | new |
-| (no equivalent today) | `POST /api/v1/leaves` | ⏳ | 5 | new |
-| `PATCH /api/deadline-extensions/[id]` | `PATCH /api/v1/deadline-extensions/{id}` | ⏳ | 5 | |
-| (no equivalent today) | `GET /api/v1/deadline-extensions` | ⏳ | 5 | new |
-| (no equivalent today) | `POST /api/v1/deadline-extensions` | ⏳ | 5 | new |
-| (server-side helper today) | `GET /api/v1/inbox` | ⏳ | 5 | aggregator: pending leaves + extensions |
+| `PATCH /api/leave-requests/[id]` | `PATCH /api/v1/leaves/{id}` | ✅ | 5 | ceo approve/reject; auto-stamps approved_by_id |
+| (no equivalent today) | `GET /api/v1/leaves` | ✅ | 5 | new; scoped (CEO sees all, member sees own) |
+| (no equivalent today) | `POST /api/v1/leaves` | ✅ | 5 | new; user_id from JWT |
+| `PATCH /api/deadline-extensions/[id]` | `PATCH /api/v1/deadline-extensions/{id}` | ✅ | 5 | ceo only |
+| (no equivalent today) | `GET /api/v1/deadline-extensions` | ✅ | 5 | new; scoped |
+| (no equivalent today) | `POST /api/v1/deadline-extensions` | ✅ | 5 | new; requested_by_id from JWT |
+| (server-side helper today) | `GET /api/v1/inbox` | ✅ | 5 | aggregator: pending leaves + extensions; ceo only |
 | `POST /api/capture/process` | `POST /api/v1/capture/process` | ⏳ | 6 | LLM parse + DB write |
 | (no equivalent today) | `GET /api/v1/capture/sessions` | ⏳ | 6 | new |
 | (no equivalent today) | `GET /api/v1/capture/sessions/{id}` | ⏳ | 6 | new |

@@ -123,11 +123,16 @@ export function AvailabilityView({
   const router = useRouter();
 
   async function handleDecide(id: string, status: "approved" | "rejected") {
-    await fetch(`/api/leave-requests/${id}`, {
+    const res = await fetch(`/api/proxy/v1/leaves/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, approvedById: ceoId }),
+      body: JSON.stringify({ status }),
     });
+    const envelope = await res.json().catch(() => null);
+    if (!res.ok || envelope?.status !== "success") {
+      console.error("Leave decision failed:", envelope?.message ?? res.status);
+      return;
+    }
     router.refresh();
   }
 

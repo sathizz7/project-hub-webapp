@@ -28,10 +28,10 @@ export function ExtensionsTab({ extensions }: { extensions: SerializedExtension[
 
   async function decide(id: string, status: "approved" | "rejected") {
     setActing(id);
-    await fetch(`/api/deadline-extensions/${id}`, {
+    await fetch(`/api/proxy/v1/deadline-extensions/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, ceoComment: comments[id] ?? "" }),
+      body: JSON.stringify({ status, ceo_comment: comments[id] ?? "" }),
     });
     setActing(null);
     router.refresh();

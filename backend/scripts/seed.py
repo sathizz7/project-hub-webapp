@@ -245,6 +245,52 @@ def seed() -> None:
                     (pid, users_by_email[author_email], title, type_, desc, link),
                 )
 
+            # 8. Sample pending leave (idempotent — check by user_id + start_date)
+            arjun_id = users_by_email.get("arjun@projecthub.dev")
+            if arjun_id:
+                cur.execute(
+                    """
+                    SELECT 1 FROM leave_requests
+                    WHERE user_id = %s AND start_date = %s
+                    """,
+                    (arjun_id, "2026-06-15"),
+                )
+                if cur.fetchone() is None:
+                    cur.execute(
+                        """
+                        INSERT INTO leave_requests
+                          (user_id, type, start_date, end_date, days, reason, status)
+                        VALUES (%s, 'planned', '2026-06-15', '2026-06-19', 5.0,
+                                'Family vacation', 'pending')
+                        """,
+                        (arjun_id,),
+                    )
+
+            # 9. Sample pending deadline extension (idempotent — check by requester + project)
+            vikram_id = users_by_email.get("vikram@projecthub.dev")
+            gateway_pid = project_ids.get("API Gateway Modernization")
+            if vikram_id and gateway_pid:
+                cur.execute(
+                    """
+                    SELECT 1 FROM deadline_extensions
+                    WHERE requested_by_id = %s AND project_id = %s
+                    """,
+                    (vikram_id, gateway_pid),
+                )
+                if cur.fetchone() is None:
+                    cur.execute(
+                        """
+                        INSERT INTO deadline_extensions
+                          (project_id, requested_by_id, original_deadline,
+                           requested_deadline, reason, status, escalation_level)
+                        VALUES (%s, %s, '2026-07-01T00:00:00Z',
+                                '2026-07-15T00:00:00Z',
+                                'Need more time for stakeholder review',
+                                'pending', 0)
+                        """,
+                        (gateway_pid, vikram_id),
+                    )
+
         conn.commit()
 
 

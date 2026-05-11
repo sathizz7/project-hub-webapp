@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getActionInbox, getPendingLeaveRequests, getActiveLeaves, getOverdueTasks, getPendingExtensions } from "@/lib/queries";
+import { getActionInbox, getActiveLeaves, getOverdueTasks } from "@/lib/queries";
 import { computeProjectProgress, computeDaysRemaining, computeKpis, generateHeuristicInsights } from "@/lib/command-center-data";
 import { PageHeader, KPIStat, ProjectCard, EmptyState } from "@/components/primitives";
 import { TodayWeekCard } from "./today-week-card";
@@ -8,6 +8,7 @@ import { InsightCardClient } from "./insight-card-client";
 import { Inbox } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { ReviewInboxItem, CaptureInboxItem, ExtensionInboxItem } from "@/lib/queries/inbox";
+import type { InboxLeave, InboxExtension } from "@/app/(app)/page";
 
 function insightAction(title: string): { href: string; label: string } | undefined {
   if (title.includes("overdue")) return { href: "/projects", label: "View tasks" };
@@ -17,26 +18,29 @@ function insightAction(title: string): { href: string; label: string } | undefin
   return undefined;
 }
 
-export async function CeoCommandCenter({ userId, name }: { userId: string; name: string }) {
+interface CeoCommandCenterProps {
+  userId: string;
+  name: string;
+  pendingLeaves: InboxLeave[];
+  pendingExtensions: InboxExtension[];
+}
+
+export async function CeoCommandCenter({ userId, name, pendingLeaves, pendingExtensions }: CeoCommandCenterProps) {
   const today = new Date();
   const weekEnd = new Date(today.getTime() + 7 * 86_400_000);
 
   const [
     inboxItems,
-    pendingLeaves,
     activeLeavesToday,
     overdueTasks,
-    pendingExtensions,
     activeProjects,
     tasksThisWeek,
     teamCount,
     completedCount,
   ] = await Promise.all([
     getActionInbox(userId),
-    getPendingLeaveRequests(),
     getActiveLeaves(today),
     getOverdueTasks(),
-    getPendingExtensions(),
     prisma.project.findMany({
       where: { status: "active" },
       select: {
@@ -60,7 +64,7 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
   ]);
 
   const upcomingLeaveCount = pendingLeaves.filter(l =>
-    new Date(l.startDate) >= today && new Date(l.startDate) <= weekEnd
+    new Date(l.start_date) >= today && new Date(l.start_date) <= weekEnd
   ).length;
 
   const kpis = computeKpis({
@@ -73,7 +77,10 @@ export async function CeoCommandCenter({ userId, name }: { userId: string; name:
 
   const insights = generateHeuristicInsights({
     overdueTaskCount: overdueTasks.length,
-    pendingExtensions: pendingExtensions.map(e => ({ escalationLevel: e.escalationLevel, project: { title: e.project.title } })),
+    pendingExtensions: pendingExtensions.map(e => ({
+      escalationLevel: e.escalation_level,
+      project: { title: e.project_title ?? "" },
+    })),
     upcomingLeaveCount,
     activeProjectCount: activeProjects.length,
     pendingInboxCount: inboxItems.length,

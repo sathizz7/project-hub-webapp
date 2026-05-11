@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createTestDb } from "@/lib/__tests__/_helpers/test-db";
-import { getPendingExtensions, getExtensionsForProject } from "@/lib/queries/extensions";
+import { getPendingExtensions } from "@/lib/queries/extensions";
 
 type TestPrisma = Awaited<ReturnType<typeof createTestDb>>["prisma"];
 
@@ -44,17 +44,3 @@ describe("getPendingExtensions", () => {
   });
 });
 
-describe("getExtensionsForProject", () => {
-  it("returns all extensions for a given project", async () => {
-    const { p1 } = await seed(prisma);
-    const exts = await getExtensionsForProject(p1.id, prisma);
-    expect(exts).toHaveLength(2);
-  });
-
-  it("returns empty for project with no extensions", async () => {
-    const { p2 } = await seed(prisma);
-    const project3 = await prisma.project.create({ data: { title: "Empty Project", type: "engineering", requirement: "Nothing" } });
-    const exts = await getExtensionsForProject(project3.id, prisma);
-    expect(exts).toHaveLength(0);
-  });
-});
