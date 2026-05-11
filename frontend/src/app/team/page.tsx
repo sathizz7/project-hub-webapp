@@ -1,28 +1,28 @@
-import { prisma } from "@/lib/prisma";
+import { apiServerFetch } from "@/lib/api";
 import { computePerformanceMetrics } from "@/lib/queries/performance";
 import { deriveDepartment, type SerializedMember } from "@/lib/team-helpers";
 import { TeamOverview } from "@/components/team/team-overview";
 
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  role_type: "ceo" | "team_member";
+  avatar_color: string;
+};
+
 export default async function TeamPage() {
-  const users = await prisma.user.findMany({
-    where: { roleType: "team_member" },
-    select: {
-      id: true, name: true, role: true, email: true, avatarColor: true,
-      assignedProjects: {
-        where: { project: { status: "active" } },
-        select: { projectId: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const allUsers = await apiServerFetch<UserRow[]>("/api/v1/users");
+  const users = allUsers.filter(u => u.role_type === "team_member");
 
   const members: SerializedMember[] = await Promise.all(
     users.map(async u => {
       const perf = await computePerformanceMetrics(u.id);
       return {
-        id: u.id, name: u.name, role: u.role, email: u.email, avatarColor: u.avatarColor,
+        id: u.id, name: u.name, role: u.role, email: u.email, avatarColor: u.avatar_color,
         department: deriveDepartment(u.role),
-        activeProjectCount: u.assignedProjects.length,
+        activeProjectCount: 0,
         performance: perf,
       };
     })

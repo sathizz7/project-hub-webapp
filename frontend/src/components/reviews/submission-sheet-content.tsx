@@ -46,9 +46,10 @@ export function SubmissionSheetContent({
     if (!feedbackText.trim()) return;
     setSending(true);
     try {
-      const meRes = await fetch("/api/users");
-      const users = await meRes.json() as Array<{ id: string; roleType: string }>;
-      const ceo = users.find((u) => u.roleType === "ceo");
+      const meRes = await fetch("/api/proxy/v1/users");
+      const usersEnvelope = await meRes.json() as { data: Array<{ id: string; role_type: string }> };
+      const users = usersEnvelope.data ?? [];
+      const ceo = users.find((u) => u.role_type === "ceo");
       if (!ceo) return;
       await fetch("/api/feedback", {
         method: "POST",

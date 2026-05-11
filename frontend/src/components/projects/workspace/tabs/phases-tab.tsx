@@ -29,10 +29,10 @@ export function PhasesTab({
 
   async function completePhase(phaseId: string) {
     setCompleting(phaseId);
-    await fetch("/api/phases", {
+    await fetch(`/api/proxy/v1/phases/${phaseId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phaseId, status: "completed" }),
+      body: JSON.stringify({ status: "completed" }),
     });
     setCompleting(null);
     router.refresh();
