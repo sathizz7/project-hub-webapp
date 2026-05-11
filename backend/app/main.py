@@ -18,7 +18,7 @@ from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
 from app.routers import (
-    auth, checkpoints, feedback, health, phases, projects, submissions, tasks, users,
+    auth, checkpoints, feedback, health, leaves, phases, projects, submissions, tasks, users,
 )
 
 
@@ -57,3 +57,4 @@ app.include_router(tasks.router)
 app.include_router(submissions.router)
 app.include_router(feedback.router)
 app.include_router(checkpoints.router)
+app.include_router(leaves.router)
