@@ -1,5 +1,6 @@
 """Capture router — sessions list/get/process, items patch."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -11,6 +12,8 @@ from app.prompts.capture import CAPTURE_SYSTEM_PROMPT
 from app.responses import ok
 from app.schemas.capture import CaptureItemUpdate, CaptureProcessRequest
 
+
+logger = logging.getLogger("app.routers.capture")
 
 router = APIRouter(prefix="/api/v1/capture", tags=["capture"])
 
@@ -124,8 +127,12 @@ def process_capture(
         llm_text = call_llm(system=CAPTURE_SYSTEM_PROMPT, user=raw_input, max_tokens=1024)
         parsed = parse_json_response(llm_text, fallback=[])
         if not isinstance(parsed, list):
+            logger.warning("capture/process: LLM returned non-list JSON — falling back to empty items. Raw: %r", llm_text[:200])
             parsed = []
-    except Exception:
+        else:
+            logger.info("capture/process: parsed %d items from LLM response", len(parsed))
+    except Exception as exc:
+        logger.error("capture/process: LLM call failed — saving session with empty items. %s: %s", type(exc).__name__, exc)
         parsed = []
 
     with get_conn() as conn:

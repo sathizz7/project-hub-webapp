@@ -8,6 +8,7 @@
 Future phases: include auth, users, projects, ... routers.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -17,6 +18,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
 from app.routers import (
     ai, auth, capture, checkpoints, extensions, feedback, health, inbox, leaves,
     phases, projects, submissions, tasks, users,
