@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { apiServerFetch, ApiError } from "@/lib/api";
-import { getExtensionsForProject } from "@/lib/queries";
 import { ProjectWorkspace } from "@/components/projects/workspace/project-workspace";
 import type {
   ProjectWorkspaceData,
@@ -96,6 +95,33 @@ type HydratedProject = {
   checkpoints: HydratedCheckpoint[];
 };
 
+// ── Hydrated shape from GET /api/v1/deadline-extensions ──────────────────────
+
+type HydratedExtension = {
+  id: string;
+  project_id: string | null;
+  task_id: string | null;
+  requested_by_id: string;
+  original_deadline: string;
+  requested_deadline: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected" | "auto_escalated";
+  ceo_comment: string | null;
+  approved_by_id: string | null;
+  escalation_level: number;
+  created_at: string;
+  updated_at: string | null;
+};
+
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  role_type: "ceo" | "team_member";
+  avatar_color: string;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default async function ProjectDetailPage({
@@ -115,9 +141,12 @@ export default async function ProjectDetailPage({
     throw e;
   }
 
-  // Extensions are not yet served by the backend hydrated endpoint — keep
-  // reading them from Prisma for now (Phase 4 will migrate these).
-  const extensions = await getExtensionsForProject(id);
+  // Extensions are now served by FastAPI; fetch alongside users for requester enrichment.
+  const [extensionsRaw, usersList] = await Promise.all([
+    apiServerFetch<HydratedExtension[]>(`/api/v1/deadline-extensions?project_id=${id}`),
+    apiServerFetch<UserRow[]>("/api/v1/users"),
+  ]);
+  const userById = new Map(usersList.map(u => [u.id, u]));
 
   // Parse JSON fields that the backend may return as raw JSON strings
   let aiPlan: AiPlan = {};
@@ -185,19 +214,24 @@ export default async function ProjectDetailPage({
       : null,
   }));
 
-  const serializedExtensions: SerializedExtension[] = extensions.map(e => ({
-    id: e.id,
-    reason: e.reason,
-    reasonDetail: e.reasonDetail,
-    status: e.status,
-    ceoComment: e.ceoComment,
-    originalDeadline: e.originalDeadline.toISOString(),
-    requestedDeadline: e.requestedDeadline.toISOString(),
-    escalationLevel: e.escalationLevel,
-    createdAt: e.createdAt.toISOString(),
-    task: e.task ? { id: e.task.id, title: e.task.title, priority: e.task.priority } : null,
-    requestedBy: e.requestedBy,
-  }));
+  const serializedExtensions: SerializedExtension[] = extensionsRaw.map(e => {
+    const requester = userById.get(e.requested_by_id);
+    return {
+      id: e.id,
+      reason: e.reason ?? "",
+      reasonDetail: e.reason ?? "",
+      status: e.status,
+      ceoComment: e.ceo_comment ?? "",
+      originalDeadline: e.original_deadline,
+      requestedDeadline: e.requested_deadline,
+      escalationLevel: e.escalation_level,
+      createdAt: e.created_at,
+      task: null,
+      requestedBy: requester
+        ? { id: requester.id, name: requester.name, avatarColor: requester.avatar_color }
+        : { id: e.requested_by_id, name: "Unknown", avatarColor: "#888" },
+    };
+  });
 
   const serializedCheckpoints: SerializedCheckpoint[] = project.checkpoints.map(c => ({
     id: c.id,

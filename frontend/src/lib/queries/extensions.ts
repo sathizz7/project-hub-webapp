@@ -27,10 +27,3 @@ export async function getPendingExtensions(db: PrismaClient = defaultPrisma) {
   });
 }
 
-export async function getExtensionsForProject(projectId: string, db: PrismaClient = defaultPrisma) {
-  return db.deadlineExtension.findMany({
-    where: { projectId },
-    select: extensionSelect,
-    orderBy: { createdAt: "desc" },
-  });
-}
