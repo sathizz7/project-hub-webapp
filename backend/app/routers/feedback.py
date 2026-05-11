@@ -87,5 +87,6 @@ def create_feedback(
                 (str(submission_id), user.user_id, payload.text, payload.is_ai),
             )
             new_row = cur.fetchone()
+            assert new_row is not None  # INSERT ... RETURNING always yields a row
         conn.commit()
     return ok(data=_shape_feedback(new_row), message="Created")
