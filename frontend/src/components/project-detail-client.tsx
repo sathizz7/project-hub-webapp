@@ -139,20 +139,23 @@ export function ProjectDetailClient({
 
   async function submitCheckpoint() {
     setSubmitting(true);
-    await fetch("/api/checkpoints", {
+    const res = await fetch(`/api/proxy/v1/projects/${project.id}/checkpoints`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        projectId: project.id,
         decision: checkpointDecision,
         notes: checkpointNotes,
       }),
     });
+    const envelope = await res.json().catch(() => null);
+    setSubmitting(false);
+    if (!res.ok || envelope?.status !== "success") {
+      alert(envelope?.message ?? "Failed to submit checkpoint");
+      return;
+    }
     setCheckpointOpen(false);
     setCheckpointNotes("");
-    setSubmitting(false);
     router.refresh();
-    window.location.reload();
   }
 
   async function submitWork() {
