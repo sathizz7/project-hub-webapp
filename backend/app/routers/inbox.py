@@ -114,11 +114,7 @@ def get_inbox(user: CurrentUser = Depends(get_current_user)) -> dict:
                         "id": str(r["p_id"]),
                         "title": r["p_title"],
                     },
-                    "submitter": {
-                        "id": str(r["u_id"]),
-                        "name": r["u_name"],
-                        "avatar_color": r["u_avatar_color"],
-                    },
+                    "submitter": _user_summary(r),
                 })
 
             # 4. Pending capture items from the calling CEO's own sessions.
