@@ -8,6 +8,7 @@ from app.auth import CurrentUser, get_current_user
 from app.db import get_conn
 from app.responses import ok
 from app.schemas.feedback import FeedbackCreate
+from app.shapes import shape_feedback
 
 
 router = APIRouter(tags=["feedback"])
@@ -37,17 +38,6 @@ def _user_can_see_submission(cur, submission_id: str, user: CurrentUser) -> tupl
     return _user_can_see_project(cur, str(row["project_id"]), user), row
 
 
-def _shape_feedback(r: dict) -> dict:
-    return {
-        "id": str(r["id"]),
-        "submission_id": str(r["submission_id"]),
-        "from_user_id": str(r["from_user_id"]) if r["from_user_id"] else None,
-        "text": r["text"],
-        "is_ai": r["is_ai"],
-        "created_at": r["created_at"].isoformat() if r["created_at"] else None,
-    }
-
-
 @router.get("/api/v1/submissions/{submission_id}/feedback")
 def list_feedback(submission_id: UUID, user: CurrentUser = Depends(get_current_user)) -> dict:
     with get_conn() as conn:
@@ -64,7 +54,7 @@ def list_feedback(submission_id: UUID, user: CurrentUser = Depends(get_current_u
                 (str(submission_id),),
             )
             rows = cur.fetchall()
-    return ok(data=[_shape_feedback(r) for r in rows])
+    return ok(data=[shape_feedback(r) for r in rows])
 
 
 @router.post("/api/v1/submissions/{submission_id}/feedback")
@@ -89,4 +79,4 @@ def create_feedback(
             new_row = cur.fetchone()
             assert new_row is not None  # INSERT ... RETURNING always yields a row
         conn.commit()
-    return ok(data=_shape_feedback(new_row), message="Created")
+    return ok(data=shape_feedback(new_row), message="Created")

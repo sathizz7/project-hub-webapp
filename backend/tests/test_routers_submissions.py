@@ -233,10 +233,10 @@ def test_list_submissions_without_include_does_not_return_feedback(
         assert "feedback" not in item
 
 
-def test_list_submissions_include_feedback_no_n_plus_1(
+def test_list_submissions_include_feedback_batched_correctness(
     setup: dict, client: TestClient
 ) -> None:
-    """All 3 submissions come back with nested feedback via the batched code path."""
+    """Verifies the batched include path correctly fans feedback out to multiple parent submissions."""
     sub_ids = []
     for i in range(3):
         r = client.post(

@@ -9,17 +9,7 @@ from app.auth import CurrentUser, get_current_user
 from app.db import get_conn
 from app.responses import ok
 from app.schemas.submissions import SubmissionCreate
-
-
-def _shape_feedback(r: dict) -> dict:
-    return {
-        "id": str(r["id"]),
-        "submission_id": str(r["submission_id"]),
-        "from_user_id": str(r["from_user_id"]) if r["from_user_id"] else None,
-        "text": r["text"],
-        "is_ai": r["is_ai"],
-        "created_at": r["created_at"].isoformat() if r["created_at"] else None,
-    }
+from app.shapes import shape_feedback
 
 
 router = APIRouter(prefix="/api/v1/submissions", tags=["submissions"])
@@ -89,15 +79,13 @@ def list_submissions(
             cur.execute(sql, tuple(params))
             rows = cur.fetchall()
 
-    if not rows:
-        return ok(data=[])
+            if not rows:
+                return ok(data=[])
 
-    shaped = [_shape_submission(r) for r in rows]
+            shaped = [_shape_submission(r) for r in rows]
 
-    if include_feedback:
-        sub_ids = [r["id"] for r in rows]
-        with get_conn() as conn:
-            with conn.cursor() as cur:
+            if include_feedback:
+                sub_ids = [r["id"] for r in rows]
                 cur.execute(
                     """
                     SELECT id, submission_id, from_user_id, text, is_ai, created_at
@@ -109,13 +97,13 @@ def list_submissions(
                 )
                 fb_rows = cur.fetchall()
 
-        feedback_by_sub: dict = {}
-        for fb in fb_rows:
-            key = str(fb["submission_id"])
-            feedback_by_sub.setdefault(key, []).append(_shape_feedback(fb))
+                feedback_by_sub: dict = {}
+                for fb in fb_rows:
+                    key = str(fb["submission_id"])
+                    feedback_by_sub.setdefault(key, []).append(shape_feedback(fb))
 
-        for item in shaped:
-            item["feedback"] = feedback_by_sub.get(item["id"], [])
+                for item in shaped:
+                    item["feedback"] = feedback_by_sub.get(item["id"], [])
 
     return ok(data=shaped)
 
