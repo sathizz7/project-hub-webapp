@@ -28,18 +28,18 @@ Living tracker of every Next.js API route's migration to FastAPI. Updated as eac
 | (no equivalent today) | `GET /api/v1/my/projects` | ✅ | 3 | team-member-scoped |
 | `PATCH /api/phases` | `PATCH /api/v1/phases/{id}` | ✅ | 3 | resource id moves to path |
 | (no equivalent today) | `GET /api/v1/projects/{id}/phases` | ✅ | 3 | new |
-| `PATCH /api/tasks/[id]` | `PATCH /api/v1/tasks/{id}` | ⏳ | 4 | |
-| (no equivalent today) | `GET /api/v1/tasks` | ⏳ | 4 | new — list with filters |
-| (no equivalent today) | `GET /api/v1/tasks/{id}` | ⏳ | 4 | new |
-| (no equivalent today) | `POST /api/v1/tasks` | ⏳ | 4 | new |
-| (no equivalent today) | `GET /api/v1/my/tasks` | ⏳ | 4 | team-member-scoped |
-| `GET /api/submissions` | `GET /api/v1/submissions` | ⏳ | 4 | |
-| `POST /api/submissions` | `POST /api/v1/submissions` | ⏳ | 4 | |
-| (no equivalent today) | `GET /api/v1/submissions/{id}` | ⏳ | 4 | new |
-| `POST /api/feedback` | `POST /api/v1/submissions/{id}/feedback` | ⏳ | 4 | nested under submission |
-| (no equivalent today) | `GET /api/v1/submissions/{id}/feedback` | ⏳ | 4 | new |
-| `POST /api/checkpoints` | `POST /api/v1/projects/{id}/checkpoints` | ⏳ | 4 | nested |
-| (no equivalent today) | `GET /api/v1/projects/{id}/checkpoints` | ⏳ | 4 | new |
+| `PATCH /api/tasks/[id]` | `PATCH /api/v1/tasks/{id}` | ✅ | 4 | auto-stamps completed_at on status='completed' |
+| (no equivalent today) | `GET /api/v1/tasks` | ✅ | 4 | new — list with filters |
+| (no equivalent today) | `GET /api/v1/tasks/{id}` | ✅ | 4 | new |
+| (no equivalent today) | `POST /api/v1/tasks` | ✅ | 4 | new |
+| (no equivalent today) | `GET /api/v1/my/tasks` | ✅ | 4 | team-member-scoped |
+| `GET /api/submissions` | `GET /api/v1/submissions` | ✅ | 4 | |
+| `POST /api/submissions` | `POST /api/v1/submissions` | ✅ | 4 | |
+| (no equivalent today) | `GET /api/v1/submissions/{id}` | ✅ | 4 | new |
+| `POST /api/feedback` | `POST /api/v1/submissions/{id}/feedback` | ✅ | 4 | nested under submission |
+| (no equivalent today) | `GET /api/v1/submissions/{id}/feedback` | ✅ | 4 | new |
+| `POST /api/checkpoints` | `POST /api/v1/projects/{id}/checkpoints` | ✅ | 4 | nested; CEO-only |
+| (no equivalent today) | `GET /api/v1/projects/{id}/checkpoints` | ✅ | 4 | new; CEO-only |
 | `PATCH /api/leave-requests/[id]` | `PATCH /api/v1/leaves/{id}` | ⏳ | 5 | ceo approve/reject |
 | (no equivalent today) | `GET /api/v1/leaves` | ⏳ | 5 | new |
 | (no equivalent today) | `POST /api/v1/leaves` | ⏳ | 5 | new |

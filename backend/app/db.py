@@ -1,7 +1,7 @@
 """Postgres connection pool + per-request connection helper."""
 
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 
 from psycopg import Connection
 from psycopg.rows import dict_row
@@ -9,7 +9,12 @@ from psycopg_pool import ConnectionPool
 
 from app.config import settings
 
-_pool: ConnectionPool | None = None
+# Row type for cursors derived from this pool's connections.
+# Set via the dict_row factory in init_pool() — every cursor returns dicts,
+# not tuples. Parameterizing Connection with this row type makes mypy aware.
+DictRow = dict[str, Any]
+
+_pool: ConnectionPool[Connection[DictRow]] | None = None
 
 
 def init_pool() -> None:
@@ -35,14 +40,15 @@ def close_pool() -> None:
 
 
 @contextmanager
-def get_conn() -> Generator[Connection, None, None]:
+def get_conn() -> Generator[Connection[DictRow], None, None]:
     """Check out a connection from the pool for the duration of the context.
 
     Usage:
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT ...")
-                rows = cur.fetchall()
+                rows = cur.fetchall()    # list[dict[str, Any]]
+                row = cur.fetchone()     # dict[str, Any] | None
     """
     if _pool is None:
         raise RuntimeError("Connection pool not initialized — call init_pool() at app startup")

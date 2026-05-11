@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { AlertTriangle, Clock, FileText } from "lucide-react";
+import { AlertTriangle, Clock, FileText, Users } from "lucide-react";
 
 type ActivityItem = {
   title: string;
@@ -9,17 +9,54 @@ type ActivityItem = {
   createdAt: string;
 };
 
+type TeamMember = {
+  user: { id: string; name: string; avatarColor: string };
+};
+
 export function ProjectRightRail({
   recentActivity,
   overdueTaskCount,
   pendingExtensionCount,
+  assignees,
 }: {
   recentActivity: ActivityItem[];
   overdueTaskCount: number;
   pendingExtensionCount: number;
+  assignees?: TeamMember[];
 }) {
   return (
     <aside className="space-y-6">
+      {/* Team */}
+      {assignees && assignees.length > 0 && (
+        <div className="rounded-lg border border-border bg-bg p-4">
+          <h3 className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-fg-muted">
+            <Users className="h-3.5 w-3.5" />
+            Team ({assignees.length})
+          </h3>
+          <ul className="space-y-2">
+            {assignees.map(a => (
+              <li key={a.user.id} className="flex items-center gap-2 text-sm">
+                <span
+                  className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                  )}
+                  style={{ backgroundColor: a.user.avatarColor }}
+                  title={a.user.name}
+                >
+                  {a.user.name
+                    .split(" ")
+                    .map(n => n.charAt(0))
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </span>
+                <span className="truncate text-fg">{a.user.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Insights */}
       {(overdueTaskCount > 0 || pendingExtensionCount > 0) && (
         <div className="rounded-lg border border-border bg-bg p-4 space-y-2">

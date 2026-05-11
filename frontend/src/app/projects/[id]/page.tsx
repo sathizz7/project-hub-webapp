@@ -31,7 +31,6 @@ type HydratedPhase = {
   status: "pending" | "active" | "completed";
   checklist: Array<{ label: string; done: boolean }>;
   order: number;
-  submissions: HydratedSubmission[];
 };
 
 type HydratedTask = {
@@ -59,6 +58,7 @@ type HydratedFeedback = {
 
 type HydratedSubmission = {
   id: string;
+  phase_id: string | null;
   title: string;
   type: "document" | "code" | "architecture" | "notebook" | "demo";
   description: string | null;
@@ -134,6 +134,16 @@ export default async function ProjectDetailPage({
     else if (Array.isArray(raw)) techStack = raw as string[];
   } catch { /* ignore */ }
 
+  // Backend returns submissions at the top level with phase_id pointing
+  // to the owning phase. Group them so each phase carries its own subset.
+  const submissionsByPhase = new Map<string, HydratedSubmission[]>();
+  for (const s of project.submissions) {
+    if (s.phase_id == null) continue;
+    const list = submissionsByPhase.get(s.phase_id);
+    if (list) list.push(s);
+    else submissionsByPhase.set(s.phase_id, [s]);
+  }
+
   const serializedPhases: SerializedPhase[] = project.phases.map(phase => ({
     id: phase.id,
     phaseName: phase.phase_name,
@@ -141,7 +151,7 @@ export default async function ProjectDetailPage({
     order: phase.order,
     // backend returns [{label, done}] — flatten to label strings for the UI
     checklist: phase.checklist.map(item => item.label),
-    submissions: phase.submissions.map(s => ({
+    submissions: (submissionsByPhase.get(phase.id) ?? []).map(s => ({
       id: s.id,
       title: s.title,
       type: s.type,
@@ -169,7 +179,10 @@ export default async function ProjectDetailPage({
     priority: t.priority,
     status: t.status,
     dueDate: t.due_date ?? null,
-    assignee: t.assignee ? { id: t.assignee.id, name: t.assignee.name } : null,
+    completedAt: t.completed_at ?? null,
+    assignee: t.assignee
+      ? { id: t.assignee.id, name: t.assignee.name, avatarColor: t.assignee.avatar_color }
+      : null,
   }));
 
   const serializedExtensions: SerializedExtension[] = extensions.map(e => ({
