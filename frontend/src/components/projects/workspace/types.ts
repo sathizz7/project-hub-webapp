@@ -39,7 +39,8 @@ export type SerializedTask = {
   priority: "low" | "medium" | "high" | "critical";
   status: string;
   dueDate: string | null;
-  assignee: { id: string; name: string } | null;
+  completedAt: string | null;
+  assignee: { id: string; name: string; avatarColor: string } | null;
 };
 
 export type SerializedExtension = {

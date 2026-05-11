@@ -77,7 +77,12 @@ export function ProjectWorkspace({ data }: { data: ProjectWorkspaceData }) {
             </TabsContent>
 
             <TabsContent value="tasks">
-              <TasksTab tasks={data.tasks} />
+              <TasksTab
+                tasks={data.tasks}
+                assignees={data.assignees}
+                phases={data.phases}
+                projectId={data.id}
+              />
             </TabsContent>
 
             <TabsContent value="submissions">
@@ -103,6 +108,7 @@ export function ProjectWorkspace({ data }: { data: ProjectWorkspaceData }) {
           recentActivity={recentActivity}
           overdueTaskCount={overdueCount}
           pendingExtensionCount={pendingExtCount}
+          assignees={data.assignees}
         />
       </div>
     </div>

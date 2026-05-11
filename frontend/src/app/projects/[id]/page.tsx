@@ -179,7 +179,10 @@ export default async function ProjectDetailPage({
     priority: t.priority,
     status: t.status,
     dueDate: t.due_date ?? null,
-    assignee: t.assignee ? { id: t.assignee.id, name: t.assignee.name } : null,
+    completedAt: t.completed_at ?? null,
+    assignee: t.assignee
+      ? { id: t.assignee.id, name: t.assignee.name, avatarColor: t.assignee.avatar_color }
+      : null,
   }));
 
   const serializedExtensions: SerializedExtension[] = extensions.map(e => ({
