@@ -17,7 +17,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db import close_pool, init_pool
 from app.exceptions import register_exception_handlers
-from app.routers import auth, feedback, health, phases, projects, submissions, tasks, users
+from app.routers import (
+    auth, checkpoints, feedback, health, phases, projects, submissions, tasks, users,
+)
 
 
 @asynccontextmanager
@@ -54,3 +56,4 @@ app.include_router(phases.router)
 app.include_router(tasks.router)
 app.include_router(submissions.router)
 app.include_router(feedback.router)
+app.include_router(checkpoints.router)
