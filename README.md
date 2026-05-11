@@ -39,7 +39,7 @@ See [`backend/README.md`](backend/README.md) (created in Phase 1) for details.
 
 ## Architecture
 
-The current state is a Next.js full-stack app (Next.js + Prisma + SQLite + NextAuth). It is migrating to a FastAPI + Postgres backend with the Next.js app becoming a pure frontend — see:
+A monorepo with `frontend/` (Next.js 16, App Router, Tailwind 4) consuming a FastAPI + Postgres backend in `backend/`. The frontend has no database layer — Server Components call FastAPI via `apiServerFetch<T>()`, client components go through `/api/proxy/v1/*`. Auth is JWT-in-HTTP-only-cookie. See:
 
 - **Spec:** [`docs/superpowers/specs/2026-05-09-projecthub-fastapi-backend-design.md`](docs/superpowers/specs/2026-05-09-projecthub-fastapi-backend-design.md)
 - **Migration tracker:** [`docs/migration-mapping.md`](docs/migration-mapping.md)

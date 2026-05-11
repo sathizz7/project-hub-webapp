@@ -9,7 +9,7 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
-The frontend expects the FastAPI backend at `http://localhost:8000` once Phase 1 is complete (configurable via `NEXT_PUBLIC_API_URL` in `.env.local`). Until Phase 2 cutover, the existing Prisma + SQLite path keeps working.
+The frontend expects the FastAPI backend at `http://localhost:8000` (configurable via `NEXT_PUBLIC_API_URL` in `.env.local`). All data access goes through FastAPI — the frontend has no database layer.
 
 ## Tests
 
@@ -29,8 +29,7 @@ npm run build
 - Next.js 16 (App Router)
 - Tailwind 4
 - shadcn/ui + Base UI
-- (transitional) Prisma 7 + SQLite — being removed in Phase 7
-- (transitional) NextAuth — being removed in Phase 2
+- FastAPI backend (Postgres + psycopg) via `apiServerFetch` in Server Components and `/api/proxy/v1/*` in client components
 
 ## See also
 

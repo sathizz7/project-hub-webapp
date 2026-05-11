@@ -62,3 +62,14 @@ When you cut over a route in a later phase:
 1. Flip its status emoji (⏳ → 🚧 → ✅)
 2. Add a `Done in` column entry once frontend is wired and the old route is deleted
 3. Commit the doc update alongside the migration commit
+
+## Phase 7 cleanup (2026-05-11)
+
+Prisma + SQLite removed from `frontend/`. The frontend is now a pure FastAPI consumer:
+
+- All Server Components use `apiServerFetch<T>("/api/v1/...")`.
+- All client components use `fetch("/api/proxy/v1/...")`.
+- `frontend/prisma/`, `frontend/src/lib/prisma.ts`, `frontend/src/lib/queries/`, `frontend/src/generated/prisma/`, `frontend/dev.db`, `frontend/prisma.config.ts` — all deleted.
+- `package.json` no longer lists `prisma`, `@prisma/client`, `@prisma/adapter-better-sqlite3`, or `@prisma/adapter-libsql`.
+- Backend gained: `?include=feedback,project,phase,user` flags on `GET /api/v1/submissions`; `pending_reviews` + `pending_captures` keys on `GET /api/v1/inbox`. Shared `app/shapes.py` for embedded row-shapers.
+- Test counts: backend 175 (was 162 pre-Phase-7), frontend 116 (was 139 — 23 Prisma-coupled test files deleted).
