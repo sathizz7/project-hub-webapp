@@ -11,6 +11,17 @@ from app.responses import ok
 from app.schemas.submissions import SubmissionCreate
 
 
+def _shape_feedback(r: dict) -> dict:
+    return {
+        "id": str(r["id"]),
+        "submission_id": str(r["submission_id"]),
+        "from_user_id": str(r["from_user_id"]) if r["from_user_id"] else None,
+        "text": r["text"],
+        "is_ai": r["is_ai"],
+        "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+    }
+
+
 router = APIRouter(prefix="/api/v1/submissions", tags=["submissions"])
 
 
@@ -43,8 +54,11 @@ def list_submissions(
     project_id: Optional[UUID] = Query(None),
     phase_id: Optional[UUID] = Query(None),
     user_id: Optional[UUID] = Query(None),
+    include: Optional[str] = Query(None),
     user: CurrentUser = Depends(get_current_user),
 ) -> dict:
+    include_feedback = include is not None and "feedback" in [v.strip() for v in include.split(",")]
+
     where_clauses = []
     params: list = []
     if project_id is not None:
@@ -74,7 +88,36 @@ def list_submissions(
         with conn.cursor() as cur:
             cur.execute(sql, tuple(params))
             rows = cur.fetchall()
-    return ok(data=[_shape_submission(r) for r in rows])
+
+    if not rows:
+        return ok(data=[])
+
+    shaped = [_shape_submission(r) for r in rows]
+
+    if include_feedback:
+        sub_ids = [r["id"] for r in rows]
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, submission_id, from_user_id, text, is_ai, created_at
+                    FROM feedback
+                    WHERE submission_id = ANY(%s)
+                    ORDER BY created_at
+                    """,
+                    (sub_ids,),
+                )
+                fb_rows = cur.fetchall()
+
+        feedback_by_sub: dict = {}
+        for fb in fb_rows:
+            key = str(fb["submission_id"])
+            feedback_by_sub.setdefault(key, []).append(_shape_feedback(fb))
+
+        for item in shaped:
+            item["feedback"] = feedback_by_sub.get(item["id"], [])
+
+    return ok(data=shaped)
 
 
 @router.get("/{submission_id}")

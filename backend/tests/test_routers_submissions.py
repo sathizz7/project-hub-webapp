@@ -165,3 +165,105 @@ def test_get_submission_unknown_returns_404(setup: dict, client: TestClient) -> 
 
 def test_list_submissions_unauth(client: TestClient, db_clean: None) -> None:
     assert client.get("/api/v1/submissions").status_code == 401
+
+
+def test_list_submissions_with_include_feedback_returns_nested(
+    setup: dict, client: TestClient
+) -> None:
+    """?include=feedback embeds a feedback array on each submission."""
+    # Create a submission
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+        json={"project_id": setup["project_id"], "title": "Sub1", "type": "code"},
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    # Add 2 feedback rows
+    for text in ("First feedback", "Second feedback"):
+        fb_resp = client.post(
+            f"/api/v1/submissions/{sid}/feedback",
+            headers=_bearer(setup["ceo_token"]),
+            json={"text": text, "is_ai": False},
+        )
+        assert fb_resp.status_code == 200, fb_resp.text
+
+    resp = client.get(
+        f"/api/v1/submissions?include=feedback",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert len(data) >= 1
+    sub = next(s for s in data if s["id"] == sid)
+    assert "feedback" in sub
+    assert len(sub["feedback"]) == 2
+    for fb in sub["feedback"]:
+        assert "text" in fb
+        assert "is_ai" in fb
+        assert "created_at" in fb
+        assert "from_user_id" in fb
+
+
+def test_list_submissions_without_include_does_not_return_feedback(
+    setup: dict, client: TestClient
+) -> None:
+    """Without ?include=feedback the feedback key must be absent."""
+    create_resp = client.post(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+        json={"project_id": setup["project_id"], "title": "Sub2", "type": "document"},
+    )
+    assert create_resp.status_code == 200, create_resp.text
+    sid = create_resp.json()["data"]["id"]
+
+    client.post(
+        f"/api/v1/submissions/{sid}/feedback",
+        headers=_bearer(setup["ceo_token"]),
+        json={"text": "Some feedback", "is_ai": True},
+    )
+
+    resp = client.get(
+        "/api/v1/submissions",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    for item in resp.json()["data"]:
+        assert "feedback" not in item
+
+
+def test_list_submissions_include_feedback_no_n_plus_1(
+    setup: dict, client: TestClient
+) -> None:
+    """All 3 submissions come back with nested feedback via the batched code path."""
+    sub_ids = []
+    for i in range(3):
+        r = client.post(
+            "/api/v1/submissions",
+            headers=_bearer(setup["ceo_token"]),
+            json={"project_id": setup["project_id"], "title": f"SubN{i}", "type": "code"},
+        )
+        assert r.status_code == 200, r.text
+        sub_ids.append(r.json()["data"]["id"])
+
+    for sid in sub_ids:
+        client.post(
+            f"/api/v1/submissions/{sid}/feedback",
+            headers=_bearer(setup["ceo_token"]),
+            json={"text": f"fb for {sid}", "is_ai": False},
+        )
+
+    resp = client.get(
+        "/api/v1/submissions?include=feedback",
+        headers=_bearer(setup["ceo_token"]),
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    returned_ids = {s["id"] for s in data}
+    for sid in sub_ids:
+        assert sid in returned_ids
+        sub = next(s for s in data if s["id"] == sid)
+        assert "feedback" in sub
+        assert len(sub["feedback"]) == 1
+        assert sub["feedback"][0]["text"] == f"fb for {sid}"
