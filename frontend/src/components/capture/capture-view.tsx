@@ -59,12 +59,39 @@ export function CaptureView({
   function processInput() {
     if (!rawInput.trim()) return;
     start(async () => {
-      const res = await fetch("/api/capture/process", {
+      const res = await fetch("/api/proxy/v1/capture/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawInput, userId }),
+        body: JSON.stringify({ raw_input: rawInput }),
       });
-      const session = await res.json() as ParsedCaptureSession;
+      const envelope = await res.json().catch(() => null);
+      if (!res.ok || envelope?.status !== "success") {
+        return;
+      }
+      const s = envelope.data as {
+        id: string;
+        raw_input: string;
+        created_at: string;
+        items: Array<{
+          id: string; type: string; title: string;
+          description: string | null; priority: string; status: string;
+          created_at: string;
+        }>;
+      };
+      const session: ParsedCaptureSession = {
+        id: s.id,
+        rawInput: s.raw_input,
+        createdAt: s.created_at,
+        items: s.items.map(i => ({
+          id: i.id,
+          type: i.type,
+          title: i.title,
+          description: i.description ?? "",
+          priority: i.priority,
+          status: i.status,
+          createdAt: i.created_at,
+        })),
+      };
       setCurrentSession(session);
       setRawInput("");
       router.refresh();
